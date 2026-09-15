@@ -23,13 +23,13 @@ from source_archive_usage import write_usage  # noqa: E402
 
 
 class PackageSmokeTests(unittest.TestCase):
-    def test_v23_identity_is_consistent(self) -> None:
+    def test_v24_identity_is_consistent(self) -> None:
         skill = (PACKAGE / "SKILL.md").read_text(encoding="utf-8")
         agent = (PACKAGE / "agents" / "openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("name: seo-report-portal-v2-3", skill)
-        self.assertIn("# SEO Report Portal v2.3", skill)
-        self.assertIn('display_name: "SEO Report Portal v2.3"', agent)
-        self.assertIn("$seo-report-portal-v2-3", agent)
+        self.assertIn("name: seo-report-portal-v2-4", skill)
+        self.assertIn("# SEO Report Portal v2.4", skill)
+        self.assertIn('display_name: "SEO Report Portal v2.4"', agent)
+        self.assertIn("$seo-report-portal-v2-4", agent)
         self.assertNotIn("seo-report-portal-v2-2", skill)
 
     def test_generic_dataforseo_example_is_a_valid_limited_trial_config(self) -> None:
@@ -100,7 +100,7 @@ class PackageSmokeTests(unittest.TestCase):
         self.assertIn("现有全局 Skill 包含 private，停止更新", guide)
 
     def test_windows_repair_runbook_keeps_automation_in_a_safe_scope(self) -> None:
-        runbook = (PACKAGE / "references" / "windows-v23-repair-runbook.md").read_text(encoding="utf-8")
+        runbook = (PACKAGE / "references" / "windows-v24-repair-runbook.md").read_text(encoding="utf-8")
         self.assertIn("https://github.com/LOG1124/seo-report-portal-v2-3.git", runbook)
         self.assertIn("WINDOWS_UNC_PILOT_PASS", runbook)
         self.assertIn("不得扫描整个磁盘", runbook)
