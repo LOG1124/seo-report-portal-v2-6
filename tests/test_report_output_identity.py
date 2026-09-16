@@ -41,6 +41,25 @@ class ReportOutputIdentityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "REPORT_TYPE_PATH_MISMATCH"):
                 validate_report_artifact(wrong)
 
+    def test_period_accepts_five_consecutive_months(self) -> None:
+        """A non-standard but continuous span is a valid 阶段报告."""
+        with tempfile.TemporaryDirectory() as tmp:
+            report = self.write_report(
+                Path(tmp), "period", "2026-04_to_2026-08",
+                ["2026-04", "2026-05", "2026-06", "2026-07", "2026-08"],
+            )
+            self.assertEqual(validate_report_artifact(report)["code"], "REPORT_ARTIFACT_VALID")
+
+    def test_quarterly_rejects_non_three_month_period(self) -> None:
+        """Named quarterly reports retain their exact three-month contract."""
+        with tempfile.TemporaryDirectory() as tmp:
+            report = self.write_report(
+                Path(tmp), "quarterly", "2026-04_to_2026-08",
+                ["2026-04", "2026-05", "2026-06", "2026-07", "2026-08"],
+            )
+            with self.assertRaisesRegex(ValueError, "季度报告必须包含 3 个月"):
+                validate_report_artifact(report)
+
     def test_duplicate_payloads_at_distinct_period_paths_are_reported(self) -> None:
         """Copying the same report data into another period path must block publication review."""
         with tempfile.TemporaryDirectory() as tmp:

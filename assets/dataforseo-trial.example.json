@@ -1,6 +1,7 @@
 {
   "domain": "example.com",
   "month": "2026-06",
+  "reporting_period": ["2026-06"],
   "location_code": 2840,
   "language_code": "en",
   "serp_device": "desktop",

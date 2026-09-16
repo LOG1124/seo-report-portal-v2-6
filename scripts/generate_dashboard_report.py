@@ -13,6 +13,7 @@ from build_google_seo_dashboard import _domain_brand_token, _normalise_strategy_
 from customer_registry import require_active_customer
 from google_api_collector import ReadyArchive, read_ready_complete_month_archive
 from report_diagnostics import diagnostic, write_diagnostics
+from report_periods import REPORT_TYPES, TYPE_LABELS, validate_report_months
 from source_archive_usage import write_usage
 from validate_report_artifact import validate_report_artifact, validate_report_tree
 
@@ -52,6 +53,30 @@ def read_archives(archive_root: Path, domain: str, months: List[str], *, require
         except ValueError as exc:
             fail(str(exc))
     return snapshots, missing
+
+
+def third_party_status(payload: Dict[str, Any], *, waived: bool) -> Dict[str, Dict[str, str]]:
+    """Require both approved local provider snapshots unless the user waives them."""
+    reused = {
+        "dataforseo": bool(payload.get("months")) and all(month.get("marketKeywords") for month in payload["months"]),
+        "seoagent": bool(payload.get("strategyOpportunities")),
+    }
+    missing = [provider for provider, available in reused.items() if not available]
+    if missing and not waived:
+        raise ValueError(
+            "THIRD_PARTY_APPROVAL_REQUIRED: 缺少可复用的已批准第三方快照（"
+            f"{', '.join(missing)}）。请先确认域名、报告期、市场/语言、关键词与 SERP 数、"
+            "SEOAgent 查询范围、各服务费用上限和业务用途；确认后才可发起一次付费请求。"
+        )
+    if missing:
+        payload.setdefault("diagnostics", []).append(diagnostic(
+            "THIRD_PARTY_WAIVED", stage="extension_validation",
+            scope={"providers": missing}, detected={"user_acknowledgement": "--without-third-party"},
+            impact="已按明确放弃生成；相应第三方模块不会展示。",
+            next_action="如需补充市场验证或策略机会，先确认新的付费请求范围与上限。",
+            status="warning",
+        ))
+    return {provider: {"status": "reused" if available else "waived"} for provider, available in reused.items()}
 
 
 def standalone_document(fragment: str) -> str:
@@ -443,13 +468,14 @@ def refresh_existing_dashboard_strategy(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按任意月份范围生成月度、季度或年度看板与总结")
-    parser.add_argument("--type", choices=("monthly", "quarterly", "yearly"), required=True)
+    parser = argparse.ArgumentParser(description="按任意月份范围生成月度、季度、年度或阶段看板与总结")
+    parser.add_argument("--type", choices=sorted(REPORT_TYPES), required=True)
     parser.add_argument("--start-month", required=True)
     parser.add_argument("--end-month")
     parser.add_argument("--domain", required=True)
     parser.add_argument("--archive-root", type=Path, required=True)
     parser.add_argument("--allow-current-only", action="store_true")
+    parser.add_argument("--without-third-party", action="store_true")
     parser.add_argument("--dataforseo-archive-dir", type=Path)
     parser.add_argument("--seoagent-archive-dir", type=Path)
     parser.add_argument(
@@ -464,35 +490,34 @@ def main() -> int:
     archive_root = args.archive_root.resolve()
     end = args.end_month or args.start_month
     requested = month_range(args.start_month, end)
-    if args.type == "monthly" and len(requested) != 1:
-        fail("月度报告只能包含一个月份")
+    validate_report_months(args.type, requested)
     record = require_active_customer(archive_root, args.domain)
     domain = record.canonical_domain
     archives, _ = read_archives(archive_root, domain, requested, required=True)
 
-    type_labels = {"monthly": "月度报告", "quarterly": "季度报告", "yearly": "年度报告"}
-    comparison_labels = {"monthly": "上月", "quarterly": "上个季度", "yearly": "上一年度"}
+    comparison_labels = {"monthly": "上月", "quarterly": "上个季度", "yearly": "上一年度", "period": "上一等长阶段"}
     previous_requested = month_range(shift_month(requested[0], -len(requested)), shift_month(requested[0], -1))
     previous_archives, missing_previous_months = read_archives(
         archive_root, domain, previous_requested, required=False
     )
-    if missing_previous_months and not args.allow_current_only:
-        fail(f"缺少对比期月度归档：{', '.join(missing_previous_months)}")
     previous_available = not missing_previous_months
-    comparison_mode = "complete" if previous_available else "current_only_exception"
+    comparison_mode = "complete" if previous_available else "unavailable"
     enrichment_archive_dir = args.dataforseo_archive_dir
     payload = build_dashboard_data(
         archives,
         report_months=None,
         enrichment_archive_dir=enrichment_archive_dir,
         seoagent_archive_dir=args.seoagent_archive_dir,
+        expected_report_months=requested,
     )
+    provider_status = third_party_status(payload, waived=args.without_third_party)
     if previous_available:
         previous_payload = build_dashboard_data(
             previous_archives,
             report_months=None,
             enrichment_archive_dir=enrichment_archive_dir,
             seoagent_archive_dir=args.seoagent_archive_dir,
+            expected_report_months=previous_requested,
         )
         payload["quarterComparison"]["previous"] = previous_payload["quarterComparison"]["current"]
         # A monthly report is a month-over-month view. Keep this separate from
@@ -515,7 +540,7 @@ def main() -> int:
     current_metrics = payload["quarterComparison"]["current"]["metrics"]
     prior_metrics = (payload["quarterComparison"].get("previous") or {}).get("metrics", {})
     payload["report"] = {
-        "type": args.type, "typeLabel": type_labels[args.type], "label": label, "domain": domain,
+        "type": args.type, "typeLabel": TYPE_LABELS[args.type], "label": label, "domain": domain,
         "rangeLabel": display_range(requested, args.type),
         "selectedMonths": requested,
         "comparison": {
@@ -525,6 +550,7 @@ def main() -> int:
             "ctrDelta": ((current_metrics["ctr"] - prior_metrics["ctr"]) / prior_metrics["ctr"] * 100) if previous_available and prior_metrics.get("ctr") else 0,
             "rankDelta": (prior_metrics["averagePosition"] - current_metrics["averagePosition"]) if previous_available else 0,
         },
+        "thirdParty": provider_status,
     }
     payload["report"]["actionPlans"] = build_action_plans(payload["months"], args.type)
     (output_dir / "dashboard-data.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

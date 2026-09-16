@@ -23,13 +23,13 @@ from source_archive_usage import write_usage  # noqa: E402
 
 
 class PackageSmokeTests(unittest.TestCase):
-    def test_v24_identity_is_consistent(self) -> None:
+    def test_v25_identity_is_consistent(self) -> None:
         skill = (PACKAGE / "SKILL.md").read_text(encoding="utf-8")
         agent = (PACKAGE / "agents" / "openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("name: seo-report-portal-v2-4", skill)
-        self.assertIn("# SEO Report Portal v2.4", skill)
-        self.assertIn('display_name: "SEO Report Portal v2.4"', agent)
-        self.assertIn("$seo-report-portal-v2-4", agent)
+        self.assertIn("name: seo-report-portal-v2-5", skill)
+        self.assertIn("# SEO Report Portal v2.5", skill)
+        self.assertIn('display_name: "SEO Report Portal v2.5"', agent)
+        self.assertIn("$seo-report-portal-v2-5", agent)
         self.assertNotIn("seo-report-portal-v2-2", skill)
 
     def test_generic_dataforseo_example_is_a_valid_limited_trial_config(self) -> None:
@@ -93,7 +93,7 @@ class PackageSmokeTests(unittest.TestCase):
 
     def test_team_upgrade_uses_github_without_touching_private_configuration(self) -> None:
         guide = (PACKAGE / "references" / "team-first-run-guide.md").read_text(encoding="utf-8")
-        self.assertIn("https://github.com/LOG1124/seo-report-portal-v2-3.git", guide)
+        self.assertIn("https://github.com/LOG1124/seo-report-portal-v2-4.git", guide)
         self.assertIn("git clone --branch main --single-branch", guide)
         self.assertIn("private/", guide)
         self.assertIn("~/.codex/config.toml", guide)
@@ -101,7 +101,7 @@ class PackageSmokeTests(unittest.TestCase):
 
     def test_windows_repair_runbook_keeps_automation_in_a_safe_scope(self) -> None:
         runbook = (PACKAGE / "references" / "windows-v24-repair-runbook.md").read_text(encoding="utf-8")
-        self.assertIn("https://github.com/LOG1124/seo-report-portal-v2-3.git", runbook)
+        self.assertIn("https://github.com/LOG1124/seo-report-portal-v2-4.git", runbook)
         self.assertIn("WINDOWS_UNC_PILOT_PASS", runbook)
         self.assertIn("不得扫描整个磁盘", runbook)
         self.assertIn("不得自行重新采集", runbook)

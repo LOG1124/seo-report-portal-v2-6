@@ -11,9 +11,7 @@ import re
 from typing import Any, Dict, List
 
 from report_diagnostics import diagnostic
-
-
-EXPECTED_MONTHS = {"monthly": 1, "quarterly": 3, "yearly": 12}
+from report_periods import validate_report_months
 
 
 def _fail(message: str) -> None:
@@ -36,12 +34,14 @@ def validate_report_artifact(directory: Path) -> Dict[str, Any]:
     report = payload.get("report")
     if not isinstance(report, dict):
         _fail("REPORT_TYPE_PATH_MISMATCH: dashboard-data.json 缺少 report 元数据")
-    expected_count = EXPECTED_MONTHS.get(report_type)
     if (
         report.get("domain") != domain or report.get("type") != report_type or report.get("label") != label
-        or expected_count is None or len(report.get("selectedMonths", [])) != expected_count
     ):
         _fail(f"REPORT_TYPE_PATH_MISMATCH: 路径 {domain}/{report_type}/{label} 与 report 元数据不一致")
+    try:
+        validate_report_months(report_type, report.get("selectedMonths", []))
+    except ValueError as exc:
+        _fail(str(exc))
     html = html_path.read_text(encoding="utf-8")
     summary = summary_path.read_text(encoding="utf-8")
     embedded = re.search(r'<script id="google-seo-data" type="application/json">(.*?)</script>', html, re.S)

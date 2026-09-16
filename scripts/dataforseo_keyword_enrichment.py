@@ -298,6 +298,7 @@ def main() -> int:
         "domain": config["domain"], "month": config["month"], "market": market,
         "selected_keywords": selected, "search_volume": search_volume, "serp": None,
         "costs": {"search_volume": search_volume.get("cost"), "serp": None},
+        "approval": {"approved": True},
         "collected_at": datetime.now().astimezone().isoformat(timespec="seconds"),
     }
     for metadata_key in ("reporting_period", "selection_basis"):

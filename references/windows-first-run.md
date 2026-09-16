@@ -4,10 +4,10 @@
 
 ## 1. 本地工具与私密文件
 
-在 PowerShell 的客户工作区执行。`$skill` 是 Codex 已安装的现役 v2.4 Skill，不是旧版本：
+在 PowerShell 的客户工作区执行。`$skill` 是 Codex 已安装的现役 v2.5 Skill，不是旧版本：
 
 ```powershell
-$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-4'
+$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-5'
 New-Item -ItemType Directory -Force private, config | Out-Null
 Copy-Item "$skill\assets\dataforseo.env.example" 'private\dataforseo.env'
 Copy-Item "$skill\assets\oss.env.example" 'private\oss.env'
@@ -40,7 +40,7 @@ OSS_ARCHIVE_ROOT=Z:\seo-report-portal
 GOOGLE_SOURCE_ARCHIVE_ROOT=Z:\seo-report-source-archive
 
 # 或者：UNC
-# OSS_ARCHIVE_ROOT=\\192.168.110.26\共享盘\seo-report-portal
+# OSS_ARCHIVE_ROOT=\\172.20.3.153\共享盘\seo-report-portal
 # GOOGLE_SOURCE_ARCHIVE_ROOT=\\server\共享盘\seo-report-source-archive
 ```
 
@@ -54,7 +54,7 @@ Windows 必须直接使用 Python 发布器 `publish_oss_report.py`；`publish_o
 
 ```powershell
 py -3 "$skill\scripts\google_api_collector.py" --config .\private\google-api.json --project-input .\config\project-input.json --archive-root 'Z:\seo-report-source-archive' --month 2026-08 --archive-only
-py -3 "$skill\scripts\generate_dashboard_report.py" --type monthly --start-month 2026-08 --domain example.com --archive-root 'Z:\seo-report-source-archive' --output-root .\output\dashboards --diagnostics-root .\output\report-diagnostics
+py -3 "$skill\scripts\generate_dashboard_report.py" --type monthly --start-month 2026-08 --domain example.com --archive-root 'Z:\seo-report-source-archive' --output-root .\output\dashboards --diagnostics-root .\output\report-diagnostics --without-third-party
 py -3 "$skill\scripts\dataforseo_keyword_enrichment.py" --config .\config\dataforseo-trial.json --archive-root 'Z:\seo-report-source-archive' --credentials .\private\dataforseo.env --dry-run
 py -3 "$skill\scripts\publish_oss_report.py" --local-report-dir .\output\dashboards\example.com\monthly\2026-08 --client-slug example-com --type monthly --period 2026-08 --oss-env .\private\oss.env --source-archive-root 'Z:\seo-report-source-archive' --dry-run
 ```
@@ -69,7 +69,7 @@ py -3 "$skill\scripts\import_google_archive.py" --archive-root 'Z:\seo-report-so
 
 如果命令提示某月份存在 `YYYY-MM.json.lock`，立即停止；它记录写入机器、进程与 UTC 开始时间。不要由普通同事删除锁，更不要删除、改名或手工补写目标 JSON 或 `.json.ready`。**只有指定维护负责人**在确认所有同事的采集/导入任务均已结束并已保存锁文件内容作为故障记录后，才可恢复：JSON 和 `.ready` 都存在时，先独立核对 `.ready` 的 SHA-256 与 JSON（导入时还须与本机源 JSON 相同）并记录结果，保留两者，随后才可移走遗留锁；只有 JSON 和 `.ready` 都不存在时，才可移走遗留锁并重试。只有其中一个文件存在或哈希不一致时是未就绪异常，任何工具都不会读取或覆盖它；保留现场并交给维护负责人处置，不能用资源管理器补写。
 
-对于获明确批准的新客户仅当期例外，在生成和发布两条命令末尾都增加 `--allow-current-only`。对 UNC，不改变其它参数，仅把单引号内的 `Z:\seo-report-source-archive` 替换为 `'\\server\共享盘\seo-report-source-archive'`。
+缺少完整上期时报告会如实标记对比不可用；不要使用部分上期数据。第三方快照缺失时，先确认新的付费范围和上限；只有用户明确不要第三方模块时才在生成命令中加 `--without-third-party`。对 UNC，不改变其它参数，仅把单引号内的 `Z:\seo-report-source-archive` 替换为 `'\\172.20.3.153\共享盘\seo-report-source-archive'`。
 
 如果客户工作区已配置虚拟环境，也可把每条命令开头的 `py -3` 替换为以下 Python 运行器，其后的 `"$skill\scripts\..."` 和客户工作区参数不变：
 

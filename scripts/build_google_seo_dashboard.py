@@ -276,7 +276,7 @@ def _market_keywords(enrichment: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def _enrich_month(
     month: Dict[str, Any], archive: Dict[str, Any], label: str,
-    enrichment_archive_dir: Optional[Path], diagnostics: List[Dict[str, Any]],
+    enrichment_archive_dir: Optional[Path], diagnostics: List[Dict[str, Any]], expected_report_months: Optional[List[str]],
 ) -> None:
     month["marketKeywords"] = []
     month["serpDetail"] = None
@@ -297,6 +297,10 @@ def _enrich_month(
         and bool(market.get("language_code"))
         and bool(selected_queries)
         and selected_queries.issubset(allowed_queries)
+        and (expected_report_months is None or (
+            enrichment.get("reporting_period") == expected_report_months
+            and enrichment.get("approval", {}).get("approved") is True
+        ))
     )
     if not valid:
         diagnostics.append(diagnostic(
@@ -405,7 +409,11 @@ def _load_seoagent_strategy_archive(
         if raw.get("provider") != "seoagent" or raw.get("domain") != domain or raw.get("status") != "complete":
             continue
         strategy = _normalise_strategy_opportunities(raw)
-        if strategy["archiveMonth"] not in report_months or not strategy["location"] or not strategy["language"]:
+        if (
+            strategy["archiveMonth"] not in report_months or not strategy["location"] or not strategy["language"]
+            or raw.get("reporting_period") != report_months
+            or raw.get("approval", {}).get("approved") is not True
+        ):
             scope_mismatch = {"archive": path.name, "collection_month": strategy["archiveMonth"], "location": strategy["location"], "language": strategy["language"]}
             continue
         if strategy["archiveMonth"] and (strategy["priorityOpportunities"] or strategy["domainKeywords"] or strategy["competitorDirections"]):
@@ -425,6 +433,7 @@ def build_dashboard_data(
     archives: Iterable[Path | ReadyArchive], *, report_months: Optional[int] = 3,
     enrichment_archive_dir: Optional[Path] = None,
     seoagent_archive_dir: Optional[Path] = None,
+    expected_report_months: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     all_months = []
     source_domain = ""
@@ -439,7 +448,7 @@ def build_dashboard_data(
             raise ValueError(f"归档域名不一致：{path.name} 属于 {archived_domain}，不是 {source_domain}")
         source_domain = source_domain or archived_domain
         month = _month_summary(archive, path.stem)
-        _enrich_month(month, archive, path.stem, enrichment_archive_dir, diagnostics)
+        _enrich_month(month, archive, path.stem, enrichment_archive_dir, diagnostics, expected_report_months)
         all_months.append(month)
     _with_keyword_changes(all_months)
     for month in all_months:

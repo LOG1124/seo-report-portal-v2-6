@@ -26,6 +26,7 @@ CANONICAL_FILES = (
     "scripts/import_google_archive.py",
     "scripts/dataforseo_keyword_enrichment.py",
     "scripts/generate_dashboard_report.py",
+    "scripts/report_periods.py",
     "scripts/publish_oss_report.py",
     "scripts/publish_oss_report.sh",
     "scripts/source_archive_usage.py",

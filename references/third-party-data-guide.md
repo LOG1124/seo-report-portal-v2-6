@@ -15,14 +15,14 @@
 4. 只有确认仍有效时才运行 `--execute`。
 5. 失败时停止并报告；不得自动重试付费请求。
 
-默认试水范围为“5 个重点词市场指标 + 1 个重点词 SERP”。把响应保存到域名隔离的 DataForSEO 归档目录；生成报告时通过 `--dataforseo-archive-dir` 显式加载。
+默认试水范围为“5 个重点词市场指标 + 1 个重点词 SERP”。把响应保存到域名隔离的 DataForSEO 归档目录；每个归档必须写入与本次报告完全相同的 `reporting_period` 月份数组。`--execute` 写入 `approval.approved: true`，表示该次执行已经过人工确认。生成报告时通过 `--dataforseo-archive-dir` 显式加载。
 
 ## SEOAgent：归档而非核心指标
 
 每位同事在自己电脑上配置其获授权的 SEOAgent MCP。不要将 MCP 地址、Token 或导出的凭据放入工作区、技能包或聊天。
 
-把已批准的查询结果按 `assets/seoagent-archive.example.json` 结构保存到域名隔离的 SEOAgent 归档目录。至少提供：`provider`、`domain`、`collection_month`、`status`、查询范围和三类响应数据。
+把已批准的查询结果按 `assets/seoagent-archive.example.json` 结构保存到域名隔离的 SEOAgent 归档目录。至少提供：`provider`、`domain`、`collection_month`、`status`、查询范围和三类响应数据，以及精确的 `reporting_period` 和 `approval.approved: true`。
 
-生成报告时通过 `--seoagent-archive-dir` 显式加载。没有匹配归档时，报告应正常生成，只不显示策略机会模块。
+生成报告时通过 `--seoagent-archive-dir` 显式加载。没有两类完全匹配快照时，生成器在付费调用前停止并返回 `THIRD_PARTY_APPROVAL_REQUIRED`；只有用户明确放弃时才可加 `--without-third-party`，并隐藏相应模块。
 
 SEOAgent 的排名、流量、搜索量或 CPC 等估算字段只可作为策略观察，不得写入 GSC/GA4 核心 KPI 或 DataForSEO 市场验证列。

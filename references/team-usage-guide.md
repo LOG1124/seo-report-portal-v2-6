@@ -2,7 +2,7 @@
 
 本说明覆盖每月工作流；同事首次配置 Google、第三方数据、SMB、公盘归档、RAM、ossutil 和发布校验时，先阅读 `references/team-first-run-guide.md`。所有凭据只保存在本机私密目录，不写进 Skill 包、报告或聊天。
 
-同事安装或升级 v2.4 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.4”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
+同事安装或升级 v2.5 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.5”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
 
 ## 管理员可提前完成
 
@@ -82,7 +82,7 @@ Authorization = "Bearer <PERSONAL_OR_TEAM_TOKEN>"
 首次真正采集时，先对 Codex 发送：
 
 ```text
-使用 $seo-report-portal-v2-4 为 <domain> 准备 SEOAgent 策略快照。
+使用 $seo-report-portal-v2-5 为 <domain> 的 <YYYY-MM[, YYYY-MM...]> 报告期准备 SEOAgent 策略快照。
 查询范围：United States / English；本站关键词最多 20、机会主题最多 20；最多 3 个竞品、每个最多 5 个关键词。
 先只给出查询范围、预计费用和归档路径，不发起查询。
 ```
@@ -95,10 +95,10 @@ SEOAgent 的优先优化主题、竞品关键词方向和本站外部关键词�
 
 1. 先连接共享原始档案根目录（macOS 示例：`/Volumes/共享盘/seo-report-source-archive`；Windows 使用映射盘或 UNC），并从 `assets/customer-registry.example.json` 创建 `<共享根目录>/customer-registry.json`。每个客户采集前，先登记一条 active 的“真实域名 ↔ 报告 slug”记录。新客户 slug 只能使用小写字母、数字和连字符；只有已存在且目录名刚好等于真实域名的旧公开路径，才可显式加 `legacy_public_slug: true` 保留，不能把该标记用于新客户。
 2. 补回 v2.2 本机旧档案时，使用 `import_google_archive.py --archive-root <共享根目录> --source-file <旧 JSON> --month YYYY-MM`；它先验证客户、自然月和非空 GA4/GSC，再按原始字节导入，绝不手工复制、移动、删除或覆盖共享盘文件。来源只能是旧版 GA4/GSC 原始 JSON，不能是 `dashboard-data.json`、`summary.md` 或 `index.html`。采集器/导入器先独占写入 `<共享根目录>/ga4-gsc/<真实域名>/YYYY-MM.json` 并完成同步，再独占写入同名非公开 `.json.ready` SHA-256 标记；只有两者存在且哈希一致才可被生成、发布或自动选词读取，任一异常都停止且绝不覆盖。非 dry-run 的共享归档必须同时采集 GA4 和 GSC；`--dry-run` 可单平台且不写本机数据或共享档案；`--archive-only` 只写共享档案，不更新本机 `collected_data.json`。
-3. 生成只含官方数据的本地月报时，必须指定同一个 `--archive-root`。缺少任一对比期归档会停止普通生成；仅新客户等已获明确批准的例外才可加 `--allow-current-only`，并会在本地报告目录写入不公开的 `source-archive-usage.json`。检查客户、周期和来源是否正确。
+3. 生成报告时必须指定同一个 `--archive-root`。月报、季度报告、年度报告分别只接受连续 1、3、12 个月；非标准连续跨度使用 `period`（阶段报告）。缺少任一前序对比月只会标记“对比不可用”，不会伪造或部分比较；当前报告期缺数据仍停止。生成前先复用同客户、同 `reporting_period`、范围一致且已批准的两类第三方快照；缺少任一快照时，先确认新的付费范围和上限，或由用户明确传入 `--without-third-party`。
 4. 如要加入市场机会验证，按上面的 DataForSEO 流程：范围与预算 → 明确确认 → 以 `--archive-root <共享根目录>` 从注册表对应的完整当月 GA4/GSC 档案选词 → 执行一次 → 归档；配置不得包含 `source_archive`。
 5. 如要加入策略机会，按上面的 SEOAgent 流程：范围与预算 → 明确确认 → 采集 → 按示例结构归档。
-6. 使用报告生成器的 `--dataforseo-archive-dir` 和 `--seoagent-archive-dir` 显式载入第三方归档。
+6. 使用报告生成器的 `--dataforseo-archive-dir` 和 `--seoagent-archive-dir` 显式载入第三方归档。每份归档须记录本次完整 `reporting_period` 与 `approval.approved: true`；不匹配的客户、范围或快照绝不能替代。
 7. 审核本地 HTML、`summary.md` 与内部诊断；得到明确发布授权后，使用 `publish_oss_report.py --source-archive-root <共享根目录>` 发布。它先验证 `source-archive-usage.json`，但仍只发布三件套。若生成使用了仅当期例外，发布命令也必须显式增加 `--allow-current-only`。最终客户回复中的“文字总结”只逐字复制该份已审核 `summary.md` 的 `## 运营总结` 标题与编号正文，不得改写、删减、重排、补充或替换。客户可见的根路径 `/` 一律显示为“首页”，但不改写原始数据；运营总结的页面排行按 GSC 点击量，月报取当月，季报/年报取整个报告期合计；运营总结关键词第 2 条按 GSC 非品牌查询的报告期平均排名，数值越小越靠前；第 6 条国家/地区只按 GA4 `organicGoogleSearchClicks`（Google 搜索自然点击次数）选择，缺失时显示“暂无可用数据”，不得改用会话、GSC 点击或展示。
 
 共享盘使用 guest 读写权限，故原始档案不是保密或抗恶意篡改的存储位置。`oss.env` 中的 `GOOGLE_SOURCE_ARCHIVE_ROOT` 只是方便复制到发布器 `--source-archive-root` 参数的值；采集器和生成器不会隐式读取它，仍必须各自传入 `--archive-root`。本版本以 JSON 和同名非公开 `.json.ready` SHA-256 标记共同定义可用档案；只有两个文件存在且哈希一致、其存储周期恰为该自然月并且 GA4/GSC 均非空时，生成、发布和自动选词才会读取同一份内存快照。该标记用于拒绝半成品和意外不一致，不能防止具有共享写权限的人同时改写两份文件。
@@ -119,4 +119,4 @@ SEOAgent 的优先优化主题、竞品关键词方向和本站外部关键词�
 - 第三方归档按域名和采集月份分开保存，绝不改写 Google 月度原始档案。
 - DataForSEO 付费调用失败时停止并报告；不得自动重试。
 - SEOAgent 估算值不能覆盖 GSC、GA4 或 DataForSEO 的正式字段。
-- 缺少任一第三方归档时，继续生成 GSC/GA4 基础报告，不用零值伪造第三方结果。
+- 缺少任一第三方归档时，先停止并请求付费范围确认；仅在用户明确放弃时用 `--without-third-party` 生成，不用零值伪造第三方结果。

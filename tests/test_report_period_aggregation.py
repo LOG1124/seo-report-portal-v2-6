@@ -92,6 +92,30 @@ class ReportPeriodAggregationTests(unittest.TestCase):
             args.extend(["--end-month", end_month])
         return args
 
+    def write_provider_archives(self, root: Path, months: list[str]) -> tuple[Path, Path]:
+        dataforseo_dir = root / "dataforseo"
+        seoagent_dir = root / "seoagent"
+        for month in months:
+            self.write_archive(dataforseo_dir, month, {
+                "domain": "example.com", "month": month, "reporting_period": months,
+                "approval": {"approved": True},
+                "market": {"location_code": 2840, "language_code": "en"},
+                "selected_keywords": [{"query": "approved product"}],
+                "search_volume": {"keywords": [{"keyword": "approved product", "search_volume": 10}]},
+            })
+        self.write_archive(seoagent_dir, months[-1], {
+            "provider": "seoagent", "domain": "example.com", "status": "complete",
+            "collection_month": months[-1], "reporting_period": months,
+            "approval": {"approved": True},
+            "query_scope": {"location": "United States", "language": "English"},
+            "responses": {
+                "domain_keyword_opportunities": {"keywords": [{"keyword": "approved product", "priority": "P1", "intent": "commercial"}]},
+                "domain_keywords": {"keywords": []},
+                "competitor_keyword_strategy": {"competitors": [], "keywords": []},
+            },
+        })
+        return dataforseo_dir, seoagent_dir
+
     def test_report_ga4_is_derived_from_monthly_archives_and_matches_channel_totals(self) -> None:
         """Removing or independently altering reportGa4 must not change canonical GA4 totals."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -203,16 +227,65 @@ class ReportPeriodAggregationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "归档域名不匹配"):
                     generate_report()
 
-    def test_missing_predecessor_blocks_regular_monthly_report(self) -> None:
-        """Removing the prior monthly archive must stop a normal monthly report."""
+    def test_missing_predecessor_generates_unavailable_comparison(self) -> None:
+        """A complete current period remains usable without an all-month prior range."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_registry(root)
+            current = archive("example.com", clicks=1, impressions=10, sessions=1, key_events=0,
+                              channels=[{"sessionDefaultChannelGroup": "Direct", "sessions": 1, "keyEvents": 0}])
+            current["gsc"]["gsc_queries"] = [{"query": "approved product", "clicks": 1, "impressions": 10, "ctr": 10, "position": 11}]
+            self.write_google_archive(root, "2026-06", current)
+            dataforseo_dir, seoagent_dir = self.write_provider_archives(root, ["2026-06"])
+            args = self.generation_args(root, "2026-06") + ["--dataforseo-archive-dir", str(dataforseo_dir), "--seoagent-archive-dir", str(seoagent_dir)]
+            with patch.object(sys, "argv", args):
+                self.assertEqual(generate_report(), 0)
+            output = root / "dashboards" / "example.com" / "monthly" / "2026-06"
+            payload = json.loads((output / "dashboard-data.json").read_text(encoding="utf-8"))
+            usage = json.loads((output / "source-archive-usage.json").read_text(encoding="utf-8"))
+            self.assertFalse(payload["report"]["comparison"]["available"])
+            self.assertEqual(usage["comparison_mode"], "unavailable")
+
+    def test_missing_required_provider_archives_stop_before_output(self) -> None:
+        """A normal report must pause before output when paid data cannot be reused."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_registry(root)
             self.write_google_archive(root, "2026-06")
-            args = self.generation_args(root, "2026-06")
-            with patch.object(sys, "argv", args):
-                with self.assertRaisesRegex(ValueError, "缺少对比期月度归档"):
+            with patch.object(sys, "argv", self.generation_args(root, "2026-06")):
+                with self.assertRaisesRegex(ValueError, "THIRD_PARTY_APPROVAL_REQUIRED"):
                     generate_report()
+            self.assertFalse((root / "dashboards").exists())
+
+    def test_matching_provider_archives_are_reused_without_network_call(self) -> None:
+        """Approved local snapshots for the exact range satisfy the normal report gate."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_registry(root)
+            current = archive("example.com", clicks=1, impressions=10, sessions=1, key_events=0,
+                              channels=[{"sessionDefaultChannelGroup": "Direct", "sessions": 1, "keyEvents": 0}])
+            current["gsc"]["gsc_queries"] = [{"query": "approved product", "clicks": 1, "impressions": 10, "ctr": 10, "position": 11}]
+            self.write_google_archive(root, "2026-06", current)
+            dataforseo_dir, seoagent_dir = self.write_provider_archives(root, ["2026-06"])
+            args = self.generation_args(root, "2026-06") + ["--dataforseo-archive-dir", str(dataforseo_dir), "--seoagent-archive-dir", str(seoagent_dir)]
+            with patch.object(sys, "argv", args):
+                self.assertEqual(generate_report(), 0)
+            payload = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "dashboard-data.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["report"]["thirdParty"]["dataforseo"]["status"], "reused")
+            self.assertEqual(payload["report"]["thirdParty"]["seoagent"]["status"], "reused")
+
+    def test_explicit_third_party_waiver_generates_hidden_provider_panels(self) -> None:
+        """A waiver is recorded and never inferred from absent optional paths."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.write_registry(root)
+            self.write_google_archive(root, "2026-06")
+            with patch.object(sys, "argv", self.generation_args(root, "2026-06") + ["--without-third-party"]):
+                self.assertEqual(generate_report(), 0)
+            payload = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "dashboard-data.json").read_text(encoding="utf-8"))
+            self.assertEqual(payload["report"]["thirdParty"]["dataforseo"]["status"], "waived")
+            self.assertEqual(payload["report"]["thirdParty"]["seoagent"]["status"], "waived")
+            self.assertNotIn("strategyOpportunities", payload)
 
     def test_unready_current_archive_blocks_report_generation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -224,19 +297,6 @@ class ReportPeriodAggregationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "尚未就绪"):
                     generate_report()
 
-    def test_allow_current_only_writes_exception_sidecar(self) -> None:
-        """An explicit exception produces a local provenance record, never a silent report."""
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.write_registry(root)
-            self.write_google_archive(root, "2026-06")
-            args = self.generation_args(root, "2026-06") + ["--allow-current-only"]
-            with patch.object(sys, "argv", args):
-                self.assertEqual(generate_report(), 0)
-            usage = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "source-archive-usage.json").read_text(encoding="utf-8"))
-            self.assertEqual(usage["comparison_mode"], "current_only_exception")
-            self.assertEqual(usage["portal_slug"], "example-com")
-
     def test_complete_monthly_report_writes_current_and_previous_usage(self) -> None:
         """A complete comparison must name exactly the two hashed source archives it used."""
         with tempfile.TemporaryDirectory() as tmp:
@@ -244,7 +304,7 @@ class ReportPeriodAggregationTests(unittest.TestCase):
             self.write_registry(root)
             self.write_google_archive(root, "2026-05")
             self.write_google_archive(root, "2026-06")
-            with patch.object(sys, "argv", self.generation_args(root, "2026-06")):
+            with patch.object(sys, "argv", self.generation_args(root, "2026-06") + ["--without-third-party"]):
                 self.assertEqual(generate_report(), 0)
             usage = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "source-archive-usage.json").read_text(encoding="utf-8"))
             self.assertEqual(usage["comparison_mode"], "complete")
@@ -276,7 +336,7 @@ class ReportPeriodAggregationTests(unittest.TestCase):
                     )
                 return snapshot
 
-            with patch.object(report_generator, "read_ready_complete_month_archive", side_effect=read_then_replace), patch.object(sys, "argv", self.generation_args(root, "2026-06") + ["--allow-current-only"]):
+            with patch.object(report_generator, "read_ready_complete_month_archive", side_effect=read_then_replace), patch.object(sys, "argv", self.generation_args(root, "2026-06") + ["--without-third-party"]):
                 self.assertEqual(generate_report(), 0)
             data = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "dashboard-data.json").read_text(encoding="utf-8"))
             self.assertEqual(data["months"][0]["metrics"]["clicks"], 1)
@@ -293,7 +353,7 @@ class ReportPeriodAggregationTests(unittest.TestCase):
             current["period"] = ["2026-08-01", "2026-08-31"]
             self.write_google_archive(root, "2026-08", current)
             output_root = root / "dashboards"
-            args = self.generation_args(root, "2026-08") + ["--allow-current-only"]
+            args = self.generation_args(root, "2026-08") + ["--without-third-party"]
             with patch.object(sys, "argv", args):
                 self.assertEqual(generate_report(), 0)
             report_dir = output_root / "example.com" / "monthly" / "2026-08"
