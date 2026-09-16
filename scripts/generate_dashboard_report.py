@@ -55,6 +55,30 @@ def read_archives(archive_root: Path, domain: str, months: List[str], *, require
     return snapshots, missing
 
 
+def third_party_status(payload: Dict[str, Any], *, waived: bool) -> Dict[str, Dict[str, str]]:
+    """Require both approved local provider snapshots unless the user waives them."""
+    reused = {
+        "dataforseo": bool(payload.get("months")) and all(month.get("marketKeywords") for month in payload["months"]),
+        "seoagent": bool(payload.get("strategyOpportunities")),
+    }
+    missing = [provider for provider, available in reused.items() if not available]
+    if missing and not waived:
+        raise ValueError(
+            "THIRD_PARTY_APPROVAL_REQUIRED: 缺少可复用的已批准第三方快照（"
+            f"{', '.join(missing)}）。请先确认域名、报告期、市场/语言、关键词与 SERP 数、"
+            "SEOAgent 查询范围、各服务费用上限和业务用途；确认后才可发起一次付费请求。"
+        )
+    if missing:
+        payload.setdefault("diagnostics", []).append(diagnostic(
+            "THIRD_PARTY_WAIVED", stage="extension_validation",
+            scope={"providers": missing}, detected={"user_acknowledgement": "--without-third-party"},
+            impact="已按明确放弃生成；相应第三方模块不会展示。",
+            next_action="如需补充市场验证或策略机会，先确认新的付费请求范围与上限。",
+            status="warning",
+        ))
+    return {provider: {"status": "reused" if available else "waived"} for provider, available in reused.items()}
+
+
 def standalone_document(fragment: str) -> str:
     """Serve generated dashboard fragments as UTF-8 standalone HTML documents."""
     if re.search(r"<!doctype\\s+html|<html[\\s>]", fragment, re.I):
@@ -451,6 +475,7 @@ def main() -> int:
     parser.add_argument("--domain", required=True)
     parser.add_argument("--archive-root", type=Path, required=True)
     parser.add_argument("--allow-current-only", action="store_true")
+    parser.add_argument("--without-third-party", action="store_true")
     parser.add_argument("--dataforseo-archive-dir", type=Path)
     parser.add_argument("--seoagent-archive-dir", type=Path)
     parser.add_argument(
@@ -483,13 +508,16 @@ def main() -> int:
         report_months=None,
         enrichment_archive_dir=enrichment_archive_dir,
         seoagent_archive_dir=args.seoagent_archive_dir,
+        expected_report_months=requested,
     )
+    provider_status = third_party_status(payload, waived=args.without_third_party)
     if previous_available:
         previous_payload = build_dashboard_data(
             previous_archives,
             report_months=None,
             enrichment_archive_dir=enrichment_archive_dir,
             seoagent_archive_dir=args.seoagent_archive_dir,
+            expected_report_months=previous_requested,
         )
         payload["quarterComparison"]["previous"] = previous_payload["quarterComparison"]["current"]
         # A monthly report is a month-over-month view. Keep this separate from
@@ -522,6 +550,7 @@ def main() -> int:
             "ctrDelta": ((current_metrics["ctr"] - prior_metrics["ctr"]) / prior_metrics["ctr"] * 100) if previous_available and prior_metrics.get("ctr") else 0,
             "rankDelta": (prior_metrics["averagePosition"] - current_metrics["averagePosition"]) if previous_available else 0,
         },
+        "thirdParty": provider_status,
     }
     payload["report"]["actionPlans"] = build_action_plans(payload["months"], args.type)
     (output_dir / "dashboard-data.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
