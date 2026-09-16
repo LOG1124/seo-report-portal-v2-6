@@ -13,6 +13,7 @@ from build_google_seo_dashboard import _domain_brand_token, _normalise_strategy_
 from customer_registry import require_active_customer
 from google_api_collector import ReadyArchive, read_ready_complete_month_archive
 from report_diagnostics import diagnostic, write_diagnostics
+from report_periods import REPORT_TYPES, TYPE_LABELS, validate_report_months
 from source_archive_usage import write_usage
 from validate_report_artifact import validate_report_artifact, validate_report_tree
 
@@ -443,8 +444,8 @@ def refresh_existing_dashboard_strategy(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="按任意月份范围生成月度、季度或年度看板与总结")
-    parser.add_argument("--type", choices=("monthly", "quarterly", "yearly"), required=True)
+    parser = argparse.ArgumentParser(description="按任意月份范围生成月度、季度、年度或阶段看板与总结")
+    parser.add_argument("--type", choices=sorted(REPORT_TYPES), required=True)
     parser.add_argument("--start-month", required=True)
     parser.add_argument("--end-month")
     parser.add_argument("--domain", required=True)
@@ -464,14 +465,12 @@ def main() -> int:
     archive_root = args.archive_root.resolve()
     end = args.end_month or args.start_month
     requested = month_range(args.start_month, end)
-    if args.type == "monthly" and len(requested) != 1:
-        fail("月度报告只能包含一个月份")
+    validate_report_months(args.type, requested)
     record = require_active_customer(archive_root, args.domain)
     domain = record.canonical_domain
     archives, _ = read_archives(archive_root, domain, requested, required=True)
 
-    type_labels = {"monthly": "月度报告", "quarterly": "季度报告", "yearly": "年度报告"}
-    comparison_labels = {"monthly": "上月", "quarterly": "上个季度", "yearly": "上一年度"}
+    comparison_labels = {"monthly": "上月", "quarterly": "上个季度", "yearly": "上一年度", "period": "上一等长阶段"}
     previous_requested = month_range(shift_month(requested[0], -len(requested)), shift_month(requested[0], -1))
     previous_archives, missing_previous_months = read_archives(
         archive_root, domain, previous_requested, required=False
@@ -515,7 +514,7 @@ def main() -> int:
     current_metrics = payload["quarterComparison"]["current"]["metrics"]
     prior_metrics = (payload["quarterComparison"].get("previous") or {}).get("metrics", {})
     payload["report"] = {
-        "type": args.type, "typeLabel": type_labels[args.type], "label": label, "domain": domain,
+        "type": args.type, "typeLabel": TYPE_LABELS[args.type], "label": label, "domain": domain,
         "rangeLabel": display_range(requested, args.type),
         "selectedMonths": requested,
         "comparison": {
