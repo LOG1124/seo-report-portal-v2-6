@@ -475,10 +475,8 @@ def main() -> int:
     previous_archives, missing_previous_months = read_archives(
         archive_root, domain, previous_requested, required=False
     )
-    if missing_previous_months and not args.allow_current_only:
-        fail(f"缺少对比期月度归档：{', '.join(missing_previous_months)}")
     previous_available = not missing_previous_months
-    comparison_mode = "complete" if previous_available else "current_only_exception"
+    comparison_mode = "complete" if previous_available else "unavailable"
     enrichment_archive_dir = args.dataforseo_archive_dir
     payload = build_dashboard_data(
         archives,

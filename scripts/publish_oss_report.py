@@ -17,13 +17,12 @@ from typing import Dict, Iterable
 from urllib.request import urlopen
 
 from customer_registry import require_active_customer
+from report_periods import REPORT_TYPES
 from source_archive_usage import verify_usage
 
 
 FILES = ("index.html", "dashboard-data.json", "summary.md")
 PERIOD_RE = re.compile(r"^(?:\d{4}|\d{4}-\d{2}|\d{4}-\d{2}_to_\d{4}-\d{2})$")
-REPORT_TYPES = {"monthly", "quarterly", "yearly"}
-
 
 def load_env_file(path: Path) -> Dict[str, str]:
     """Load simple KEY=VALUE settings without interpreting shell escapes."""

@@ -203,16 +203,20 @@ class ReportPeriodAggregationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "归档域名不匹配"):
                     generate_report()
 
-    def test_missing_predecessor_blocks_regular_monthly_report(self) -> None:
-        """Removing the prior monthly archive must stop a normal monthly report."""
+    def test_missing_predecessor_generates_unavailable_comparison(self) -> None:
+        """A complete current period remains usable without an all-month prior range."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.write_registry(root)
             self.write_google_archive(root, "2026-06")
             args = self.generation_args(root, "2026-06")
             with patch.object(sys, "argv", args):
-                with self.assertRaisesRegex(ValueError, "缺少对比期月度归档"):
-                    generate_report()
+                self.assertEqual(generate_report(), 0)
+            output = root / "dashboards" / "example.com" / "monthly" / "2026-06"
+            payload = json.loads((output / "dashboard-data.json").read_text(encoding="utf-8"))
+            usage = json.loads((output / "source-archive-usage.json").read_text(encoding="utf-8"))
+            self.assertFalse(payload["report"]["comparison"]["available"])
+            self.assertEqual(usage["comparison_mode"], "unavailable")
 
     def test_unready_current_archive_blocks_report_generation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -223,19 +227,6 @@ class ReportPeriodAggregationTests(unittest.TestCase):
             with patch.object(sys, "argv", self.generation_args(root, "2026-06") + ["--allow-current-only"]):
                 with self.assertRaisesRegex(ValueError, "尚未就绪"):
                     generate_report()
-
-    def test_allow_current_only_writes_exception_sidecar(self) -> None:
-        """An explicit exception produces a local provenance record, never a silent report."""
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.write_registry(root)
-            self.write_google_archive(root, "2026-06")
-            args = self.generation_args(root, "2026-06") + ["--allow-current-only"]
-            with patch.object(sys, "argv", args):
-                self.assertEqual(generate_report(), 0)
-            usage = json.loads((root / "dashboards" / "example.com" / "monthly" / "2026-06" / "source-archive-usage.json").read_text(encoding="utf-8"))
-            self.assertEqual(usage["comparison_mode"], "current_only_exception")
-            self.assertEqual(usage["portal_slug"], "example-com")
 
     def test_complete_monthly_report_writes_current_and_previous_usage(self) -> None:
         """A complete comparison must name exactly the two hashed source archives it used."""

@@ -101,7 +101,7 @@ def verify_usage(
         raise ValueError("来源使用记录与报告身份不一致")
 
     comparison_mode = payload.get("comparison_mode")
-    if comparison_mode not in {"complete", "current_only_exception"}:
+    if comparison_mode not in {"complete", "unavailable", "current_only_exception"}:
         raise ValueError("来源使用记录的对比模式无效")
     if comparison_mode == "current_only_exception" and not allow_current_only:
         raise ValueError("仅当期报告必须显式允许发布")

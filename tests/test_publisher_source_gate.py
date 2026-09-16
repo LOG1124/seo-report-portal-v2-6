@@ -81,11 +81,12 @@ class PublisherSourceGateTests(unittest.TestCase):
         )
         return archive
 
-    def _write_usage(self, *, current_only: bool = False) -> Path:
+    def _write_usage(self, *, comparison_mode: str = "complete", previous: list[Path] | None = None) -> Path:
+        if previous is None:
+            previous = [self._archive("2026-05")] if comparison_mode == "complete" else []
         return write_usage(
             self.report_dir, self.source_root, self.record, "monthly", "2026-06",
-            [self._archive()], [] if current_only else [self._archive("2026-05")],
-            "current_only_exception" if current_only else "complete",
+            [self._archive()], previous, comparison_mode,
         )
 
     def _write_oss_env(self) -> None:
@@ -130,7 +131,7 @@ class PublisherSourceGateTests(unittest.TestCase):
         self.assertFalse((self.public_root / "example-com").exists())
 
     def test_dry_run_requires_explicit_current_only_exception(self) -> None:
-        self._write_usage(current_only=True)
+        self._write_usage(comparison_mode="current_only_exception")
         self._write_oss_env()
 
         with patch.object(sys, "argv", publish_args(self.root, "example-com", dry_run=True)):
@@ -140,6 +141,20 @@ class PublisherSourceGateTests(unittest.TestCase):
             self.assertEqual(publish_main(), 0)
 
         self.assertFalse((self.public_root / "example-com").exists())
+
+    def test_dry_run_accepts_unavailable_comparison_without_flag(self) -> None:
+        self._write_usage(comparison_mode="unavailable")
+        self._write_oss_env()
+
+        with patch.object(sys, "argv", publish_args(self.root, "example-com", dry_run=True)):
+            self.assertEqual(publish_main(), 0)
+
+    def test_complete_mode_without_previous_archive_is_rejected(self) -> None:
+        self._write_usage(comparison_mode="complete", previous=[])
+
+        with patch.object(sys, "argv", publish_args(self.root, "example-com", dry_run=True)):
+            with self.assertRaisesRegex(ValueError, "缺少对比期档案"):
+                publish_main()
 
 
 if __name__ == "__main__":
