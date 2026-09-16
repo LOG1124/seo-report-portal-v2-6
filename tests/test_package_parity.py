@@ -83,6 +83,9 @@ class PackageParityTests(unittest.TestCase):
     def test_windows_repair_runbook_is_a_release_parity_file(self) -> None:
         self.assertIn("references/windows-v24-repair-runbook.md", CANONICAL_FILES)
 
+    def test_shared_period_rules_are_a_release_parity_file(self) -> None:
+        self.assertIn("scripts/report_periods.py", CANONICAL_FILES)
+
 
 if __name__ == "__main__":
     unittest.main()

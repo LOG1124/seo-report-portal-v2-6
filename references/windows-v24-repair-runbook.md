@@ -1,16 +1,16 @@
 ---
 meta:
   contentType: How-to
-title: Let Codex update v2.4 and recover all local archives on Windows
+title: Let Codex update v2.5 and recover all local archives on Windows
 ---
 
-# Let Codex update v2.4 and recover all local archives on Windows
+# Let Codex update v2.5 and recover all local archives on Windows
 
-Attach this file to a new Codex task opened from the top-level folder that contains the colleague’s customer projects. Codex updates v2.4 from GitHub, tests the UNC share with synthetic data, and imports valid legacy archives from every project below that workspace. The colleague only approves narrowly scoped filesystem actions and restarts Codex after the final report.
+Attach this file to a new Codex task opened from the top-level folder that contains the colleague’s customer projects. Codex updates v2.5 from GitHub, tests the UNC share with synthetic data, and imports valid legacy archives from every project below that workspace. The colleague only approves narrowly scoped filesystem actions and restarts Codex after the final report.
 
 ## What this task completes
 
-Codex installs the current GitHub `main` version of v2.4, runs the no-customer-data UNC safety test, and recovers eligible local v2.2 GA4 and GSC monthly archives to the shared source archive. The update includes the 小语种首页 display rule: only the unparameterized English homepage on the customer’s primary domain displays as `首页`; language homepages display their complete GSC URL in the next newly generated report.
+Codex installs the current GitHub `main` version of v2.5, runs the no-customer-data UNC safety test, and recovers eligible local v2.2 GA4 and GSC monthly archives to the shared source archive. The update includes the 小语种首页 display rule: only the unparameterized English homepage on the customer’s primary domain displays as `首页`; language homepages display their complete GSC URL in the next newly generated report.
 
 This task does not regenerate or publish a dashboard. It also does not collect missing Google data. A later, separately approved report run can use the imported archives.
 
@@ -29,7 +29,7 @@ Complete this repair without asking the colleague to select customer projects, f
 
 ### Scope and safety boundaries
 
-- Update only from `https://github.com/LOG1124/seo-report-portal-v2-3.git`, branch `main`
+- Update only from `https://github.com/LOG1124/seo-report-portal-v2-4.git`, branch `main`
 - Follow the Windows GitHub update procedure in `references/team-first-run-guide.md`; use its Git source directory, safety checks, backup procedure, and install target exactly
 - 不得读取、输出、复制或改写任何密钥，包括 `private/`、Google 服务账号文件、DataForSEO 凭据、OSS 凭据、SEOAgent Token 或 `~/.codex/config.toml`
 - Do not modify the existing `seo-report-portal-v2-2` Skill directory
@@ -41,12 +41,12 @@ Complete this repair without asking the colleague to select customer projects, f
 
 If Git or `py -3` is unavailable, stop before changing files and report the missing prerequisite. Do not install software automatically.
 
-### Update v2.4 from GitHub
+### Update v2.5 from GitHub
 
-First complete the guide’s Windows GitHub update procedure. It must stop if the Git source, staging content, or existing v2.4 Skill directory contains `private/`. Keep the Git source outside the installed Skill directory. Verify that this installed script exists before continuing:
+First complete the guide’s Windows GitHub update procedure. It must stop if the Git source, staging content, or existing v2.5 Skill directory contains `private/`. Keep the Git source outside the installed Skill directory. Verify that this installed script exists before continuing:
 
 ```text
-%USERPROFILE%\.codex\skills\seo-report-portal-v2-4\scripts\import_google_archive.py
+%USERPROFILE%\.codex\skills\seo-report-portal-v2-5\scripts\import_google_archive.py
 ```
 
 Record the checked-out commit ID. Do not use a ZIP distributed from chat or a local folder as the update source.
@@ -105,7 +105,7 @@ Do not generate or publish reports during this task. A migrated archive only rep
 
 Return a concise Chinese report with these fields:
 
-- GitHub update status, checked-out commit, and whether the previous v2.4 Skill was backed up
+- GitHub update status, checked-out commit, and whether the previous v2.5 Skill was backed up
 - Workspace root and discovered legacy archive directories
 - UNC pilot status, GUID path, source and destination SHA-256, repeated-import rejection, and cleanup status
 - Imported archives: domain, month, local source path, shared destination path, and SHA-256
