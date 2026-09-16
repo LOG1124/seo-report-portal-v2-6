@@ -1,4 +1,4 @@
 interface:
-  display_name: "SEO Report Portal v2.3"
+  display_name: "SEO Report Portal v2.4"
   short_description: "生成含官方表现、市场验证与策略机会的 SEO 看板"
-  default_prompt: "使用 $seo-report-portal-v2-3 为客户生成或审核月度、季度或年度 SEO 数据看板；任何付费第三方采集前先给出范围和预算。客户文字总结必须逐字采用已审核 summary.md 的运营总结。"
+  default_prompt: "使用 $seo-report-portal-v2-4 为客户生成或审核月度、季度或年度 SEO 数据看板；任何付费第三方采集前先给出范围和预算。客户文字总结必须逐字采用已审核 summary.md 的运营总结。"

@@ -2,7 +2,7 @@
 
 本说明覆盖每月工作流；同事首次配置 Google、第三方数据、SMB、公盘归档、RAM、ossutil 和发布校验时，先阅读 `references/team-first-run-guide.md`。所有凭据只保存在本机私密目录，不写进 Skill 包、报告或聊天。
 
-同事安装或升级 v2.3 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.3”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
+同事安装或升级 v2.4 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.4”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
 
 ## 管理员可提前完成
 
@@ -23,7 +23,7 @@
 
 ```bash
 mkdir -p private
-cp ~/.codex/skills/seo-report-portal-v2-3/assets/dataforseo.env.example private/dataforseo.env
+cp ~/.codex/skills/seo-report-portal-v2-4/assets/dataforseo.env.example private/dataforseo.env
 chmod 600 private/dataforseo.env
 ```
 
@@ -41,7 +41,7 @@ DATAFORSEO_PASSWORD=<API_PASSWORD>
 在客户工作区对 Codex 发送：
 
 ```text
-使用 $seo-report-portal-v2-3 为 <domain> 准备 DataForSEO 试用配置。
+使用 $seo-report-portal-v2-4 为 <domain> 准备 DataForSEO 试用配置。
 只从 <YYYY-MM> 的 GSC 归档中挑选看板需要的机会词；市场为 United States、语言 English、设备 Google desktop。
 先列出关键词数、SERP 数、用途与费用上限，并只执行 dry-run；不要发起付费请求。
 ```
@@ -82,7 +82,7 @@ Authorization = "Bearer <PERSONAL_OR_TEAM_TOKEN>"
 首次真正采集时，先对 Codex 发送：
 
 ```text
-使用 $seo-report-portal-v2-3 为 <domain> 准备 SEOAgent 策略快照。
+使用 $seo-report-portal-v2-4 为 <domain> 准备 SEOAgent 策略快照。
 查询范围：United States / English；本站关键词最多 20、机会主题最多 20；最多 3 个竞品、每个最多 5 个关键词。
 先只给出查询范围、预计费用和归档路径，不发起查询。
 ```

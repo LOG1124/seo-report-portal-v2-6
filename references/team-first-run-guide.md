@@ -1,22 +1,22 @@
 # 同事首次上手：从采集到在线报告链接
 
-本指南适用于 `seo-report-portal-v2-3`。每位同事都能完成**本地 → SMB → OSS**，但不得跳过数据、付费或发布批准门禁。
+本指南适用于 `seo-report-portal-v2-4`。每位同事都能完成**本地 → SMB → OSS**，但不得跳过数据、付费或发布批准门禁。
 
 在 Windows 首次使用前，先阅读 [Windows 配置](windows-first-run.md)；不要把 macOS 的 `/Volumes/共享盘`、`.venv/bin/python` 或 `chmod` 命令照搬到 Windows。
 
-## 安装或升级 v2.3
+## 安装或升级 v2.4
 
-这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-3.git` 的 `main` 分支取得 v2.3，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
+这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-3.git` 的 `main` 分支取得 v2.4，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
 
-更新时必须保留以下内容不变：客户工作区的 `private/`、`workflows/automation/input/`、`output/dashboards/`、`~/.codex/config.toml` 以及已经发布的报告。GitHub 工作副本固定放在全局 Skill 目录之外；旧的全局 v2.3 Skill 目录只会移动到带时间戳的备份目录。若源副本或现有全局 Skill 内出现 `private/`，先停止并报告，不要将凭据带入新安装。
+更新时必须保留以下内容不变：客户工作区的 `private/`、`workflows/automation/input/`、`output/dashboards/`、`~/.codex/config.toml` 以及已经发布的报告。GitHub 工作副本固定放在全局 Skill 目录之外；旧的全局 v2.4 Skill 目录只会移动到带时间戳的备份目录。若源副本或现有全局 Skill 内出现 `private/`，先停止并报告，不要将凭据带入新安装。
 
 macOS/Linux 从 GitHub 更新：
 
 ```bash
 repo_url='https://github.com/LOG1124/seo-report-portal-v2-3.git'
-source_dir="$HOME/.codex/sources/seo-report-portal-v2-3"
-skill_dir="$HOME/.codex/skills/seo-report-portal-v2-3"
-backup_dir="$HOME/.codex/skill-backups/seo-report-portal-v2-3-pre-update-$(date +%Y%m%d%H%M%S)"
+source_dir="$HOME/.codex/sources/seo-report-portal-v2-4"
+skill_dir="$HOME/.codex/skills/seo-report-portal-v2-4"
+backup_dir="$HOME/.codex/skill-backups/seo-report-portal-v2-4-pre-update-$(date +%Y%m%d%H%M%S)"
 
 if test -e "$source_dir"; then
   test -d "$source_dir/.git" || { echo '现有 GitHub 源目录不是 Git 工作副本，停止。' >&2; exit 1; }
@@ -45,11 +45,11 @@ Windows 从 GitHub 更新：
 
 ```powershell
 $repoUrl = 'https://github.com/LOG1124/seo-report-portal-v2-3.git'
-$source = Join-Path $env:USERPROFILE '.codex\sources\seo-report-portal-v2-3'
-$archive = Join-Path $env:TEMP ('seo-report-portal-v2-3-' + [guid]::NewGuid() + '.zip')
-$stage = Join-Path $env:TEMP ('seo-report-portal-v2-3-stage-' + [guid]::NewGuid())
-$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-3'
-$backup = Join-Path $env:USERPROFILE ('.codex\skill-backups\seo-report-portal-v2-3-pre-update-' + (Get-Date -Format yyyyMMddHHmmss))
+$source = Join-Path $env:USERPROFILE '.codex\sources\seo-report-portal-v2-4'
+$archive = Join-Path $env:TEMP ('seo-report-portal-v2-4-' + [guid]::NewGuid() + '.zip')
+$stage = Join-Path $env:TEMP ('seo-report-portal-v2-4-stage-' + [guid]::NewGuid())
+$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-4'
+$backup = Join-Path $env:USERPROFILE ('.codex\skill-backups\seo-report-portal-v2-4-pre-update-' + (Get-Date -Format yyyyMMddHHmmss))
 
 if (Test-Path -LiteralPath $source) {
     if (!(Test-Path -LiteralPath (Join-Path $source '.git') -PathType Container)) { throw '现有 GitHub 源目录不是 Git 工作副本，停止。' }
@@ -76,9 +76,9 @@ Move-Item -LiteralPath $stage -Destination $skill
 Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
 ```
 
-替换后重启 Codex，让新 Skill 生效；不需要重建客户工作区或重新填写任何密钥。出现问题时，将新目录移走，再把对应时间戳备份目录移回 `~/.codex/skills/seo-report-portal-v2-3`（Windows 使用同样的 `Move-Item`），然后重新启动 Codex。上述命令只删除临时 Git archive；不会删除任何旧 Skill、客户工作区或私密配置。
+替换后重启 Codex，让新 Skill 生效；不需要重建客户工作区或重新填写任何密钥。出现问题时，将新目录移走，再把对应时间戳备份目录移回 `~/.codex/skills/seo-report-portal-v2-4`（Windows 使用同样的 `Move-Item`），然后重新启动 Codex。上述命令只删除临时 Git archive；不会删除任何旧 Skill、客户工作区或私密配置。
 
-Windows 同事如需将“更新 v2.3、验证 UNC、迁移当前工作区已有 v2.2 原始档案”交由 Codex 一次完成，可将 `references/windows-v23-repair-runbook.md` 作为任务附件交给 Codex。该运行手册不扫描整个磁盘、不自动重采集 Google 数据，也不会触碰 `private/` 或 `~/.codex/config.toml`。
+Windows 同事如需将“更新 v2.4、验证 UNC、迁移当前工作区已有 v2.2 原始档案”交由 Codex 一次完成，可将 `references/windows-v24-repair-runbook.md` 作为任务附件交给 Codex。该运行手册不扫描整个磁盘、不自动重采集 Google 数据，也不会触碰 `private/` 或 `~/.codex/config.toml`。
 
 ## 管理员先完成
 
@@ -90,7 +90,7 @@ Windows 同事如需将“更新 v2.3、验证 UNC、迁移当前工作区已有
 
 ## 同事首次配置
 
-在自己的客户工作区只创建 `private/` 与报告输出目录；不要创建或复制 `scripts/`。采集、校验、导入和发布都从已安装的 v2.3 Skill 目录运行。Windows 请按 [Windows 配置](windows-first-run.md) 使用 PowerShell 与 Python。
+在自己的客户工作区只创建 `private/` 与报告输出目录；不要创建或复制 `scripts/`。采集、校验、导入和发布都从已安装的 v2.4 Skill 目录运行。Windows 请按 [Windows 配置](windows-first-run.md) 使用 PowerShell 与 Python。
 
 只在本机填写 `private/dataforseo.env`、`private/ossutilconfig` 和 Google 服务账号 JSON。`private/oss.env` 指向本机 `ossutil`、`ossutilconfig` 和已连接的 SMB 归档根路径；不要填写或提交真实凭据到其他文件。
 
@@ -105,14 +105,14 @@ Windows 同事如需将“更新 v2.3、验证 UNC、迁移当前工作区已有
 
 1. 重启 Codex 后确认 `seoagent` MCP 显示正常；不要用真实查询测试。
 2. 确认 `private/oss.env` 的 `OSS_ARCHIVE_ROOT` 是本机可访问的报告 SMB 路径；若填写了 `GOOGLE_SOURCE_ARCHIVE_ROOT`，仍须在发布命令中显式传入该路径。
-3. 生成本地报告并使用已安装 v2.3 Skill 的校验器检查产物。Windows 先设置 `$skill`，再使用 `py -3`：
+3. 生成本地报告并使用已安装 v2.4 Skill 的校验器检查产物。Windows 先设置 `$skill`，再使用 `py -3`：
 
 ```powershell
-$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-3'
+$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-4'
 py -3 "$skill\scripts\validate_report_artifact.py" --report-dir <output/dashboards/domain/type/period> --domain-root <output/dashboards/domain>
 ```
 
-4. 只运行已安装 v2.3 Skill 的跨平台发布 dry-run；它不会写入 SMB 或 OSS：
+4. 只运行已安装 v2.4 Skill 的跨平台发布 dry-run；它不会写入 SMB 或 OSS：
 
 ```powershell
 py -3 "$skill\scripts\publish_oss_report.py" --local-report-dir <output/dashboards/domain/type/period> --client-slug <client-slug> --type <monthly|quarterly|yearly> --period <period> --source-archive-root <shared-source-root> --dry-run

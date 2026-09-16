@@ -14,6 +14,10 @@ from report_diagnostics import diagnostic
 from google_api_collector import ReadyArchive
 
 
+# ponytail: fixed 2% session tolerance; retain per-query GA4 metadata if a property needs a stricter policy.
+MAX_GA4_SESSION_DIMENSION_MISMATCH_RATIO = 0.02
+
+
 def _load(path: Path) -> Dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -210,7 +214,9 @@ def _aggregate_ga4_dimension(months: List[Dict[str, Any]], key: str, name_key: s
     return sorted(rows, key=lambda row: (-_float(row["sessions"]), str(row[name_key])))
 
 
-def _report_ga4(months: List[Dict[str, Any]], metrics: Dict[str, Any]) -> Dict[str, Any]:
+def _report_ga4(
+    months: List[Dict[str, Any]], metrics: Dict[str, Any], diagnostics: List[Dict[str, Any]],
+) -> Dict[str, Any]:
     """Canonical report-period GA4 aggregate derived only from monthly archive rows."""
     channels = _aggregate_ga4_dimension(months, "channels", "sessionDefaultChannelGroup")
     sources = _aggregate_ga4_dimension(months, "sources", "sessionSource")
@@ -219,7 +225,28 @@ def _report_ga4(months: List[Dict[str, Any]], metrics: Dict[str, Any]) -> Dict[s
     expected_sessions = _float(metrics.get("sessions"))
     expected_events = _float(metrics.get("keyEvents"))
     if channels and channel_sessions != expected_sessions:
-        raise ValueError(f"GA4 渠道会话合计与报告期会话不一致：{channel_sessions} != {expected_sessions}")
+        difference = channel_sessions - expected_sessions
+        difference_ratio = abs(difference) / expected_sessions if expected_sessions else float("inf")
+        if difference_ratio > MAX_GA4_SESSION_DIMENSION_MISMATCH_RATIO:
+            raise ValueError(
+                "GA4 渠道会话合计与报告期会话差异超过允许范围："
+                f"{channel_sessions} != {expected_sessions} ({difference_ratio:.2%})"
+            )
+        diagnostics.append(diagnostic(
+            "GA4_CHANNEL_SESSION_TOTAL_MISMATCH", stage="aggregation",
+            scope={"months": [month.get("label") for month in months]},
+            detected={
+                "total_sessions": expected_sessions,
+                "channel_sessions": channel_sessions,
+                "difference": difference,
+                "difference_ratio": difference_ratio,
+                "allowed_ratio": MAX_GA4_SESSION_DIMENSION_MISMATCH_RATIO,
+            },
+            impact="GA4 总会话和渠道行均保留官方原值；小幅近似计数差异不再阻断报告生成。",
+            next_action="若后续差异超过 2%，请核对 GA4 查询范围、分页和响应元数据。",
+            status="warning",
+            safe_actions=("未改写原始归档", "未调整 GA4 官方指标"),
+        ))
     if channels and channel_events != expected_events:
         raise ValueError(f"GA4 渠道关键事件合计与报告期关键事件不一致：{channel_events} != {expected_events}")
     return {
@@ -434,7 +461,7 @@ def build_dashboard_data(
             "current": current_summary,
             "previous": _quarter_summary(previous_months) if report_months and len(previous_months) == report_months else None,
         },
-        "reportGa4": _report_ga4(selected_months, current_summary["metrics"]),
+        "reportGa4": _report_ga4(selected_months, current_summary["metrics"], diagnostics),
         "diagnostics": diagnostics,
     }
     strategy = _load_seoagent_strategy_archive(seoagent_archive_dir, source_domain, [month["label"] for month in selected_months], diagnostics)

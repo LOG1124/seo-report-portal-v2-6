@@ -32,7 +32,7 @@ CANONICAL_FILES = (
     "references/team-first-run-guide.md",
     "references/team-usage-guide.md",
     "references/windows-first-run.md",
-    "references/windows-v23-repair-runbook.md",
+    "references/windows-v24-repair-runbook.md",
     "references/third-party-data-guide.md",
     "agents/openai.yaml",
 )

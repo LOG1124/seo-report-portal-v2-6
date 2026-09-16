@@ -120,6 +120,46 @@ class ReportPeriodAggregationTests(unittest.TestCase):
         self.assertEqual(sum(row["keyEvents"] for row in report_ga4["channels"]), 3)
         self.assertEqual(payload["quarterComparison"]["current"]["metrics"]["sessions"], 15)
 
+    def test_small_ga4_channel_session_difference_warns_without_blocking_generation(self) -> None:
+        """A normal HLL++ session estimate difference must not discard official GA4 data."""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            source = self.write_archive(directory, "2026-06", archive(
+                "example.com", clicks=1, impressions=10, sessions=13602, key_events=9,
+                channels=[
+                    {"sessionDefaultChannelGroup": "Direct", "sessions": 13654, "keyEvents": 9},
+                ],
+            ))
+            payload = build_dashboard_data([source], report_months=None)
+
+        self.assertEqual(payload["reportGa4"]["sessions"], 13602)
+        mismatch = next(item for item in payload["diagnostics"] if item["code"] == "GA4_CHANNEL_SESSION_TOTAL_MISMATCH")
+        self.assertEqual(mismatch["status"], "warning")
+        self.assertEqual(mismatch["detected"]["difference"], 52)
+        self.assertAlmostEqual(mismatch["detected"]["difference_ratio"], 52 / 13602)
+
+    def test_large_ga4_channel_session_difference_still_blocks_generation(self) -> None:
+        """A material channel mismatch must remain a report-generation stop."""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            source = self.write_archive(directory, "2026-06", archive(
+                "example.com", clicks=1, impressions=10, sessions=100, key_events=9,
+                channels=[{"sessionDefaultChannelGroup": "Direct", "sessions": 103, "keyEvents": 9}],
+            ))
+            with self.assertRaisesRegex(ValueError, "差异超过允许范围"):
+                build_dashboard_data([source], report_months=None)
+
+    def test_ga4_channel_key_event_difference_still_blocks_generation(self) -> None:
+        """The session tolerance must not weaken the additive key-event check."""
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            source = self.write_archive(directory, "2026-06", archive(
+                "example.com", clicks=1, impressions=10, sessions=100, key_events=9,
+                channels=[{"sessionDefaultChannelGroup": "Direct", "sessions": 100, "keyEvents": 10}],
+            ))
+            with self.assertRaisesRegex(ValueError, "渠道关键事件合计"):
+                build_dashboard_data([source], report_months=None)
+
     def test_mixed_domain_archives_are_rejected_before_a_report_is_aggregated(self) -> None:
         """A misplaced client archive must never become part of another client's report."""
         with tempfile.TemporaryDirectory() as tmp:

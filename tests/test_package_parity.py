@@ -30,7 +30,7 @@ FILES = (
     "references/team-first-run-guide.md",
     "references/team-usage-guide.md",
     "references/windows-first-run.md",
-    "references/windows-v23-repair-runbook.md",
+    "references/windows-v24-repair-runbook.md",
     "references/third-party-data-guide.md",
     "agents/openai.yaml",
 )
@@ -81,7 +81,7 @@ class PackageParityTests(unittest.TestCase):
             self.assertIn("SKILL_PACKAGE_OUT_OF_SYNC", codes)
 
     def test_windows_repair_runbook_is_a_release_parity_file(self) -> None:
-        self.assertIn("references/windows-v23-repair-runbook.md", CANONICAL_FILES)
+        self.assertIn("references/windows-v24-repair-runbook.md", CANONICAL_FILES)
 
 
 if __name__ == "__main__":

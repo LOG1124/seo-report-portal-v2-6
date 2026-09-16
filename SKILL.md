@@ -1,11 +1,11 @@
 ---
-name: seo-report-portal-v2-3
+name: seo-report-portal-v2-4
 description: Create, review, and publish client-isolated monthly, quarterly, and yearly SEO dashboards from GA4, GSC, approved DataForSEO keyword-market snapshots, and SEOAgent strategy archives. Use for team SEO reporting, first-party performance analysis, limited keyword-market verification, and strategy-opportunity reporting.
 ---
 
-# SEO Report Portal v2.3
+# SEO Report Portal v2.4
 
-**Active identity: `seo-report-portal-v2-3`.** Do not use, install, package, or inspect legacy `seo-report-portal` assets except as an explicitly requested rollback reference.
+**Active identity: `seo-report-portal-v2-4`.** Do not use, install, package, or inspect legacy `seo-report-portal` assets except as an explicitly requested rollback reference.
 
 Work from a team workspace, never from this installed skill directory. Read `references/team-usage-guide.md` before first use. Read `references/third-party-data-guide.md` before any third-party collection or archive import.
 
@@ -65,10 +65,10 @@ The shared SMB source archive has guest read/write access and is therefore not c
 Read `references/team-first-run-guide.md` before a teammate's first end-to-end run. It covers Google access, optional providers, SMB, individual RAM credentials, ossutil, approval, and the required local-to-SMB-to-OSS order.
 On Windows, also read `references/windows-first-run.md` before configuring paths or running the publisher.
 
-Before replacing the global v2.3 installation from GitHub `main`, require a clean Git source checkout and a staged Git archive parity check for the complete v2.3 contract:
+Before replacing the global v2.4 installation from GitHub `main`, require a clean Git source checkout and a staged Git archive parity check for the complete v2.4 contract:
 
 ```text
-python <installed-skill-dir>/scripts/check_package_parity.py --source <seo-report-portal-v2-3-source> --staged-zip <candidate.zip> --installed <global-seo-report-portal-v2-3>
+python <installed-skill-dir>/scripts/check_package_parity.py --source <seo-report-portal-v2-4-source> --staged-zip <candidate.zip> --installed <global-seo-report-portal-v2-4>
 ```
 
 ## Resources
@@ -76,7 +76,7 @@ python <installed-skill-dir>/scripts/check_package_parity.py --source <seo-repor
 - `references/team-usage-guide.md` — teammate setup and daily workflow.
 - `references/team-first-run-guide.md` — first-use checklist for the complete collection-to-public-link workflow.
 - `references/windows-first-run.md` — Windows paths, SMB mapping, Python, and publisher setup.
-- `references/windows-v23-repair-runbook.md` — one-task Windows update, UNC pilot, and v2.2 archive recovery handoff.
+- `references/windows-v24-repair-runbook.md` — one-task Windows update, UNC pilot, and v2.2 archive recovery handoff.
 - `references/third-party-data-guide.md` — provider scope, cost gate, archive rules, and dashboard meaning.
 - `references/seo-data-source-contract.json` — authoritative field ownership.
 - `assets/dataforseo-trial.example.json` — safe DataForSEO configuration example.
