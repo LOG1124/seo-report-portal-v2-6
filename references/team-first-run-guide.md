@@ -6,7 +6,7 @@
 
 ## 安装或升级 v2.6
 
-这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-4.git` 的 `main` 分支取得 v2.5，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
+这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-4.git` 的 `main` 分支取得 v2.6，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
 
 更新时必须保留以下内容不变：客户工作区的 `private/`、`workflows/automation/input/`、`output/dashboards/`、`~/.codex/config.toml` 以及已经发布的报告。GitHub 工作副本固定放在全局 Skill 目录之外；旧的全局 v2.5 Skill 目录只会移动到带时间戳的备份目录。若源副本或现有全局 Skill 内出现 `private/`，先停止并报告，不要将凭据带入新安装。
 
@@ -90,7 +90,7 @@ Windows 同事如需将“更新 v2.6、验证 UNC、迁移当前工作区已有
 
 ## 同事首次配置
 
-在自己的客户工作区只创建 `private/` 与报告输出目录；不要创建或复制 `scripts/`。采集、校验、导入和发布都从已安装的 v2.5 Skill 目录运行。Windows 请按 [Windows 配置](windows-first-run.md) 使用 PowerShell 与 Python。
+在自己的客户工作区只创建 `private/` 与报告输出目录；不要创建或复制 `scripts/`。采集、校验、导入和发布都从已安装的 v2.6 Skill 目录运行。Windows 请按 [Windows 配置](windows-first-run.md) 使用 PowerShell 与 Python。
 
 只在本机填写 `private/dataforseo.env`、`private/ossutilconfig` 和 Google 服务账号 JSON。`private/oss.env` 指向本机 `ossutil`、`ossutilconfig` 和已连接的 SMB 归档根路径；不要填写或提交真实凭据到其他文件。
 
@@ -105,14 +105,14 @@ Windows 同事如需将“更新 v2.6、验证 UNC、迁移当前工作区已有
 
 1. 重启 Codex 后确认 `seoagent` MCP 显示正常；不要用真实查询测试。
 2. 确认 `private/oss.env` 的 `OSS_ARCHIVE_ROOT` 是本机可访问的报告 SMB 路径；若填写了 `GOOGLE_SOURCE_ARCHIVE_ROOT`，仍须在发布命令中显式传入该路径。
-3. 生成本地报告并使用已安装 v2.5 Skill 的校验器检查产物。Windows 先设置 `$skill`，再使用 `py -3`：
+3. 生成本地报告并使用已安装 v2.6 Skill 的校验器检查产物。Windows 先设置 `$skill`，再使用 `py -3`：
 
 ```powershell
 $skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-6'
 py -3 "$skill\scripts\validate_report_artifact.py" --report-dir <output/dashboards/domain/type/period> --domain-root <output/dashboards/domain>
 ```
 
-4. 只运行已安装 v2.5 Skill 的跨平台发布 dry-run；它不会写入 SMB 或 OSS：
+4. 只运行已安装 v2.6 Skill 的跨平台发布 dry-run；它不会写入 SMB 或 OSS：
 
 ```powershell
 py -3 "$skill\scripts\publish_oss_report.py" --local-report-dir <output/dashboards/domain/type/period> --client-slug <client-slug> --type <monthly|quarterly|yearly|period|custom> --period <period> --source-archive-root <shared-source-root> --dry-run
