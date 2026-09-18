@@ -23,7 +23,7 @@
 
 ```bash
 mkdir -p private
-cp ~/.codex/skills/seo-report-portal-v2-4/assets/dataforseo.env.example private/dataforseo.env
+cp ~/.codex/skills/seo-report-portal-v2-6/assets/dataforseo.env.example private/dataforseo.env
 chmod 600 private/dataforseo.env
 ```
 
@@ -41,7 +41,7 @@ DATAFORSEO_PASSWORD=<API_PASSWORD>
 在客户工作区对 Codex 发送：
 
 ```text
-使用 $seo-report-portal-v2-4 为 <domain> 准备 DataForSEO 试用配置。
+使用 $seo-report-portal-v2-6 为 <domain> 准备 DataForSEO 试用配置。
 只从 <YYYY-MM> 的 GSC 归档中挑选看板需要的机会词；市场为 United States、语言 English、设备 Google desktop。
 先列出关键词数、SERP 数、用途与费用上限，并只执行 dry-run；不要发起付费请求。
 ```

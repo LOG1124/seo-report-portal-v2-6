@@ -6,14 +6,14 @@
 
 ## 安装或升级 v2.6
 
-这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-4.git` 的 `main` 分支取得 v2.6，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
+这次更新从 GitHub 仓库 `https://github.com/LOG1124/seo-report-portal-v2-6.git` 的 `main` 分支取得 v2.6，不再由管理员分发 ZIP。更新**不会**重新配置 Google、DataForSEO、SEOAgent、SMB 或 OSS，也不会读取、复制或改写任何密钥。
 
 更新时必须保留以下内容不变：客户工作区的 `private/`、`workflows/automation/input/`、`output/dashboards/`、`~/.codex/config.toml` 以及已经发布的报告。GitHub 工作副本固定放在全局 Skill 目录之外；旧的全局 v2.5 Skill 目录只会移动到带时间戳的备份目录。若源副本或现有全局 Skill 内出现 `private/`，先停止并报告，不要将凭据带入新安装。
 
 macOS/Linux 从 GitHub 更新：
 
 ```bash
-repo_url='https://github.com/LOG1124/seo-report-portal-v2-4.git'
+repo_url='https://github.com/LOG1124/seo-report-portal-v2-6.git'
 source_dir="$HOME/.codex/sources/seo-report-portal-v2-6"
 skill_dir="$HOME/.codex/skills/seo-report-portal-v2-6"
 backup_dir="$HOME/.codex/skill-backups/seo-report-portal-v2-6-pre-update-$(date +%Y%m%d%H%M%S)"
@@ -44,7 +44,7 @@ mv "$stage_dir" "$skill_dir"
 Windows 从 GitHub 更新：
 
 ```powershell
-$repoUrl = 'https://github.com/LOG1124/seo-report-portal-v2-4.git'
+$repoUrl = 'https://github.com/LOG1124/seo-report-portal-v2-6.git'
 $source = Join-Path $env:USERPROFILE '.codex\sources\seo-report-portal-v2-6'
 $archive = Join-Path $env:TEMP ('seo-report-portal-v2-6-' + [guid]::NewGuid() + '.zip')
 $stage = Join-Path $env:TEMP ('seo-report-portal-v2-6-stage-' + [guid]::NewGuid())

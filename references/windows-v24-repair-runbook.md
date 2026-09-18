@@ -29,7 +29,7 @@ Complete this repair without asking the colleague to select customer projects, f
 
 ### Scope and safety boundaries
 
-- Update only from `https://github.com/LOG1124/seo-report-portal-v2-4.git`, branch `main`
+- Update only from `https://github.com/LOG1124/seo-report-portal-v2-6.git`, branch `main`
 - Follow the Windows GitHub update procedure in `references/team-first-run-guide.md`; use its Git source directory, safety checks, backup procedure, and install target exactly
 - 不得读取、输出、复制或改写任何密钥，包括 `private/`、Google 服务账号文件、DataForSEO 凭据、OSS 凭据、SEOAgent Token 或 `~/.codex/config.toml`
 - Do not modify the existing `seo-report-portal-v2-2` Skill directory
