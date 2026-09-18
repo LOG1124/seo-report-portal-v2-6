@@ -25,4 +25,8 @@
 
 生成报告时通过 `--seoagent-archive-dir` 显式加载。没有两类完全匹配快照时，生成器在付费调用前停止并返回 `THIRD_PARTY_APPROVAL_REQUIRED`；只有用户明确放弃时才可加 `--without-third-party`，并隐藏相应模块。
 
+## 自定义日期报告
+
+`custom` 报告的精确日期快照必须写入 `reporting_period: ["YYYY-MM-DD", "YYYY-MM-DD"]`、`coverage_mode: "exact_date"` 和 `approval.approved: true`。若服务不能代表精确日期范围，先告诉用户限制；只有用户明确选择一个或多个自然月后，才可使用 `coverage_mode: "month_proxy"` 与相同的 `proxy_months` 数组。月度代理仅是市场或策略背景，不能表述为自定义日期内的第三方变化。未选择代理时，用户可以用 `--without-third-party` 放弃两类模块；不得自动发起付费请求或重试。
+
 SEOAgent 的排名、流量、搜索量或 CPC 等估算字段只可作为策略观察，不得写入 GSC/GA4 核心 KPI 或 DataForSEO 市场验证列。

@@ -8,7 +8,7 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 
 from customer_registry import CustomerRecord, google_archive_path
-from google_api_collector import ReadyArchive, read_ready_complete_month_archive
+from google_api_collector import ReadyArchive, read_ready_archive_bytes, read_ready_complete_month_archive, read_ready_custom_date_archive
 
 
 USAGE_FILE = "source-archive-usage.json"
@@ -24,11 +24,21 @@ def sha256(path: Path) -> str:
 
 def _snapshot(archive_root: Path, record: CustomerRecord, value: Path | ReadyArchive) -> ReadyArchive:
     if isinstance(value, ReadyArchive):
-        expected = google_archive_path(archive_root, record, value.path.stem).resolve()
-        if value.path.resolve() != expected or value.record != record:
+        customer_root = (Path(archive_root) / "ga4-gsc" / record.canonical_domain).resolve()
+        try:
+            value.path.resolve().relative_to(customer_root)
+        except ValueError:
+            raise ValueError("来源使用记录包含其他客户档案")
+        if value.record != record:
             raise ValueError("来源使用记录包含其他客户档案")
         return value
     path = Path(value)
+    if path.parent.name == "custom":
+        try:
+            start, end = path.stem.split("_to_", 1)
+        except ValueError as exc:
+            raise ValueError("自定义日期来源路径无效") from exc
+        return read_ready_custom_date_archive(archive_root, record.canonical_domain, start, end)
     return read_ready_complete_month_archive(archive_root, record.canonical_domain, path.stem)
 
 
@@ -131,7 +141,7 @@ def verify_usage(
         except ValueError as exc:
             raise ValueError("来源使用记录包含其他客户档案") from exc
         try:
-            snapshot = read_ready_complete_month_archive(archive_root, record.canonical_domain, source.stem)
+            snapshot = _snapshot(root, record, source)
         except (FileNotFoundError, ValueError) as exc:
             raise ValueError("源档案 SHA-256 不一致或尚未就绪") from exc
         if snapshot.path.resolve() != source or snapshot.sha256 != item["sha256"]:

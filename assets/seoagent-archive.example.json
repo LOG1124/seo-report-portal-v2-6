@@ -5,6 +5,7 @@
   "domain": "example.com",
   "collection_month": "2026-06",
   "reporting_period": ["2026-06"],
+  "coverage_mode": "month",
   "approval": {"approved": true},
   "collected_at": "2026-06-30T09:00:00Z",
   "status": "complete",

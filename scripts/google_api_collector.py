@@ -402,8 +402,7 @@ def _period_from_args(context: ProjectContext, month: Optional[str], start: Opti
     end_date = date.fromisoformat(end_value)
     if end_date < start_date:
         raise ValueError("采集结束日期不能早于开始日期")
-    label = start_value[:7] if start_value[:7] == end_value[:7] else f"{start_value}_to_{end_value}"
-    return start_value, end_value, label
+    return start_value, end_value, f"{start_value}_to_{end_value}"
 
 
 def month_dates(month: str) -> List[str]:
@@ -416,6 +415,39 @@ def month_dates(month: str) -> List[str]:
     except (AttributeError, TypeError, ValueError) as exc:
         raise ValueError("月份格式必须为 YYYY-MM") from exc
     return [f"{year:04d}-{month_number:02d}-01", f"{year:04d}-{month_number:02d}-{last_day:02d}"]
+
+
+def _custom_date_range(start: str, end: str) -> tuple[date, date]:
+    try:
+        start_date = date.fromisoformat(start)
+        end_date = date.fromisoformat(end)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("自定义日期必须是 YYYY-MM-DD") from exc
+    if end_date < start_date:
+        raise ValueError("采集结束日期不能早于开始日期")
+    return start_date, end_date
+
+
+def custom_google_archive_path(archive_root: Path, domain: str, start: str, end: str) -> Path:
+    """Return the isolated immutable path for one exact inclusive date range."""
+    _custom_date_range(start, end)
+    record = require_active_customer(archive_root, domain)
+    return Path(archive_root) / "ga4-gsc" / record.canonical_domain / "custom" / f"{start}_to_{end}.json"
+
+
+def validate_custom_date_archive(
+    archive_root: Path, domain: str, start: str, end: str, payload: Dict[str, Any]
+) -> Path:
+    record = require_active_customer(archive_root, domain)
+    path = custom_google_archive_path(archive_root, record.canonical_domain, start, end)
+    if payload.get("domain") != record.canonical_domain:
+        raise ValueError("归档域名不匹配")
+    if payload.get("period") != [start, end]:
+        raise ValueError("归档周期必须与指定自定义日期完全一致")
+    for platform in ("ga4", "gsc"):
+        if not isinstance(payload.get(platform), dict) or not payload[platform]:
+            raise ValueError("归档必须同时包含非空的 GA4 与 GSC 数据")
+    return path
 
 
 def validate_complete_month_archive(
@@ -516,6 +548,24 @@ def read_ready_complete_month_archive(archive_root: Path, domain: str, month: st
     return ReadyArchive(record, path, content, digest, payload)
 
 
+def read_ready_custom_date_archive(archive_root: Path, domain: str, start: str, end: str) -> ReadyArchive:
+    """Return one ready, registered exact-date source archive without reopening it."""
+    root = Path(archive_root).resolve()
+    record = require_active_customer(root, domain)
+    path = custom_google_archive_path(root, record.canonical_domain, start, end)
+    if not path.is_file() and not path.with_suffix(".json.ready").exists():
+        raise FileNotFoundError(f"缺少自定义日期归档：{path}")
+    content, digest = read_ready_archive_bytes(path)
+    try:
+        payload = json.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"原始档案 JSON 无效：{path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("归档 JSON 必须是对象")
+    validate_custom_date_archive(root, record.canonical_domain, start, end, payload)
+    return ReadyArchive(record, path, content, digest, payload)
+
+
 def _lock_payload() -> bytes:
     return (json.dumps({
         "hostname": socket.gethostname(),
@@ -595,6 +645,40 @@ def save_new_month_archive(archive_root: Path, domain: str, month: str, payload:
     return write_new_archive_bytes(path, content)
 
 
+def save_new_custom_archive(archive_root: Path, domain: str, start: str, end: str, payload: Dict[str, Any]) -> Path:
+    """Write one exact-date Google archive once, without touching monthly archives."""
+    path = validate_custom_date_archive(archive_root, domain, start, end, payload)
+    archived_payload = dict(payload)
+    archived_payload["archived_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+    content = (json.dumps(archived_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    return write_new_archive_bytes(path, content)
+
+
+def collect_custom_archive_from_project(
+    archive_root: Path, config_path: Path, project_input: Path, start: str, end: str
+) -> Path:
+    """Collect one authorized exact range into its isolated archive, without local dashboard writes."""
+    _custom_date_range(start, end)
+    config = _load_object(config_path)
+    context = ProjectContext.from_file(project_input)
+    credentials_file = _credential_path(config, config_path)
+    _validate_credential_identity(credentials_file, str(config.get("service_account_email", "")))
+    ga4_client, gsc_client = build_clients(credentials_file, ga4=True, gsc=True)
+    ga4_config, gsc_config = config.get("ga4", {}), config.get("gsc", {})
+    payload = {
+        "domain": context.domain, "period": [start, end],
+        "ga4": {field: value for field, value in collect_ga4(
+            ga4_client, str(ga4_config.get("property_id", "")), start, end,
+            int(ga4_config.get("row_limit", 1000)),
+        ).items() if not field.startswith("_")},
+        "gsc": collect_gsc(
+            gsc_client, str(gsc_config.get("site_url", "")), context.domain, start, end,
+            int(gsc_config.get("row_limit", 25000)), int(gsc_config.get("inspection_limit", 20)),
+        ),
+    }
+    return save_new_custom_archive(archive_root, context.domain, start, end, payload)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="通过只读 API 采集 GA4 与 Google Search Console 数据")
     parser.add_argument("--platform", choices=("all", "ga4", "gsc"), default="all")
@@ -608,13 +692,23 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="调用 API 并输出摘要，不写入 collected_data.json 或原始档案")
     parser.add_argument("--archive-only", action="store_true", help="写入月度归档，但不改写 collected_data.json")
     args = parser.parse_args()
-    if not args.dry_run and not args.month:
-        parser.error("非 --dry-run 模式必须提供 --month YYYY-MM 以创建自然月原始档案")
+    custom_dates = bool(args.start or args.end)
+    if args.month and custom_dates:
+        parser.error("--month 不能与 --start/--end 同时使用")
+    if custom_dates and (not args.start or not args.end):
+        parser.error("自定义日期归档必须同时提供 --start YYYY-MM-DD 和 --end YYYY-MM-DD")
+    if not args.dry_run and not args.month and not custom_dates:
+        parser.error("非 --dry-run 模式必须提供 --month 或完整的 --start/--end 日期范围")
     if not args.dry_run and args.platform != "all":
         parser.error("共享原始档案必须同时采集 GA4 与 GSC；单平台仅可用于 --dry-run")
     if args.month:
         try:
             month_dates(args.month)
+        except ValueError as exc:
+            parser.error(str(exc))
+    elif custom_dates:
+        try:
+            _custom_date_range(args.start, args.end)
         except ValueError as exc:
             parser.error(str(exc))
 
@@ -662,7 +756,10 @@ def main() -> int:
             result["recorded"].extend(_record_fields(store, gsc_fields, "Google Search Console API", GSC_SOURCE_URL))
 
     if not args.dry_run:
-        archive_path = save_new_month_archive(args.archive_root, context.domain, archive_label, archive_payload)
+        archive_path = (
+            save_new_custom_archive(args.archive_root, context.domain, period_start, period_end, archive_payload)
+            if custom_dates else save_new_month_archive(args.archive_root, context.domain, archive_label, archive_payload)
+        )
         result["archive"] = str(archive_path)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
