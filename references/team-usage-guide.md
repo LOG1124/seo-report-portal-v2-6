@@ -2,7 +2,7 @@
 
 本说明覆盖每月工作流；同事首次配置 Google、第三方数据、SMB、公盘归档、RAM、ossutil 和发布校验时，先阅读 `references/team-first-run-guide.md`。所有凭据只保存在本机私密目录，不写进 Skill 包、报告或聊天。
 
-同事安装或升级 v2.5 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.5”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
+同事安装或升级 v2.6 时，只按 `references/team-first-run-guide.md` 的“安装或升级 v2.6”替换全局 Skill 目录。不要重新创建或覆盖客户工作区的 `private/`、Google 服务账号、第三方归档、报告输出或 `~/.codex/config.toml`；旧全局目录必须先移动到备份目录，更新后重启 Codex 即可。
 
 ## 管理员可提前完成
 
@@ -82,7 +82,7 @@ Authorization = "Bearer <PERSONAL_OR_TEAM_TOKEN>"
 首次真正采集时，先对 Codex 发送：
 
 ```text
-使用 $seo-report-portal-v2-5 为 <domain> 的 <YYYY-MM[, YYYY-MM...]> 报告期准备 SEOAgent 策略快照。
+使用 $seo-report-portal-v2-6 为 <domain> 的 <YYYY-MM[, YYYY-MM...]> 报告期准备 SEOAgent 策略快照。
 查询范围：United States / English；本站关键词最多 20、机会主题最多 20；最多 3 个竞品、每个最多 5 个关键词。
 先只给出查询范围、预计费用和归档路径，不发起查询。
 ```
@@ -95,7 +95,7 @@ SEOAgent 的优先优化主题、竞品关键词方向和本站外部关键词�
 
 1. 先连接共享原始档案根目录（macOS 示例：`/Volumes/共享盘/seo-report-source-archive`；Windows 使用映射盘或 UNC），并从 `assets/customer-registry.example.json` 创建 `<共享根目录>/customer-registry.json`。每个客户采集前，先登记一条 active 的“真实域名 ↔ 报告 slug”记录。新客户 slug 只能使用小写字母、数字和连字符；只有已存在且目录名刚好等于真实域名的旧公开路径，才可显式加 `legacy_public_slug: true` 保留，不能把该标记用于新客户。
 2. 补回 v2.2 本机旧档案时，使用 `import_google_archive.py --archive-root <共享根目录> --source-file <旧 JSON> --month YYYY-MM`；它先验证客户、自然月和非空 GA4/GSC，再按原始字节导入，绝不手工复制、移动、删除或覆盖共享盘文件。来源只能是旧版 GA4/GSC 原始 JSON，不能是 `dashboard-data.json`、`summary.md` 或 `index.html`。采集器/导入器先独占写入 `<共享根目录>/ga4-gsc/<真实域名>/YYYY-MM.json` 并完成同步，再独占写入同名非公开 `.json.ready` SHA-256 标记；只有两者存在且哈希一致才可被生成、发布或自动选词读取，任一异常都停止且绝不覆盖。非 dry-run 的共享归档必须同时采集 GA4 和 GSC；`--dry-run` 可单平台且不写本机数据或共享档案；`--archive-only` 只写共享档案，不更新本机 `collected_data.json`。
-3. 生成报告时必须指定同一个 `--archive-root`。月报、季度报告、年度报告分别只接受连续 1、3、12 个月；非标准连续跨度使用 `period`（阶段报告）。缺少任一前序对比月只会标记“对比不可用”，不会伪造或部分比较；当前报告期缺数据仍停止。生成前先复用同客户、同 `reporting_period`、范围一致且已批准的两类第三方快照；缺少任一快照时，先确认新的付费范围和上限，或由用户明确传入 `--without-third-party`。
+3. 生成报告时必须指定同一个 `--archive-root`。月报、季度报告、年度报告分别只接受连续 1、3、12 个月；非标准连续跨度使用 `period`（阶段报告）。半月或任意日期跨度使用 `custom --start-date YYYY-MM-DD --end-date YYYY-MM-DD`，只读取 `custom/` 下完全匹配的档案，并自动尝试上一等长日期范围。前序范围不可用只写内部诊断和操作者结果，不写入客户文字总结；当前报告期缺数据仍停止。生成前先复用同客户、同 `reporting_period`、范围一致且已批准的两类第三方快照；自定义日期若服务不支持精确周期，必须由用户选择月度代理或 `--without-third-party`。
 4. 如要加入市场机会验证，按上面的 DataForSEO 流程：范围与预算 → 明确确认 → 以 `--archive-root <共享根目录>` 从注册表对应的完整当月 GA4/GSC 档案选词 → 执行一次 → 归档；配置不得包含 `source_archive`。
 5. 如要加入策略机会，按上面的 SEOAgent 流程：范围与预算 → 明确确认 → 采集 → 按示例结构归档。
 6. 使用报告生成器的 `--dataforseo-archive-dir` 和 `--seoagent-archive-dir` 显式载入第三方归档。每份归档须记录本次完整 `reporting_period` 与 `approval.approved: true`；不匹配的客户、范围或快照绝不能替代。

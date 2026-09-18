@@ -7,7 +7,7 @@
 在 PowerShell 的客户工作区执行。`$skill` 是 Codex 已安装的现役 v2.5 Skill，不是旧版本：
 
 ```powershell
-$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-5'
+$skill = Join-Path $env:USERPROFILE '.codex\skills\seo-report-portal-v2-6'
 New-Item -ItemType Directory -Force private, config | Out-Null
 Copy-Item "$skill\assets\dataforseo.env.example" 'private\dataforseo.env'
 Copy-Item "$skill\assets\oss.env.example" 'private\oss.env'

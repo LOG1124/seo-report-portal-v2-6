@@ -1,11 +1,11 @@
 ---
-name: seo-report-portal-v2-5
+name: seo-report-portal-v2-6
 description: Create, review, and publish client-isolated monthly, quarterly, yearly, or custom-period SEO dashboards from GA4, GSC, approved DataForSEO keyword-market snapshots, and SEOAgent strategy archives.
 ---
 
-# SEO Report Portal v2.5
+# SEO Report Portal v2.6
 
-**Active identity: `seo-report-portal-v2-5`.** Do not use, install, package, or inspect legacy `seo-report-portal` assets except as an explicitly requested rollback reference.
+**Active identity: `seo-report-portal-v2-6`.** Do not use, install, package, or inspect legacy `seo-report-portal` assets except as an explicitly requested rollback reference.
 
 Work from a team workspace, never from this installed skill directory. Read `references/team-usage-guide.md` before first use. Read `references/third-party-data-guide.md` before any third-party collection or archive import.
 
@@ -19,7 +19,7 @@ Work from a team workspace, never from this installed skill directory. Read `ref
 - Keep provider archives isolated by domain and collection month. Never overwrite GSC/GA4 source archives.
 - Credentials are local only. Do not put API credentials, service-account JSON, MCP tokens, customer archives, or published reports in the skill package or a public repository.
 - DataForSEO and SEOAgent are required for a normal report. Reuse them only when both local archives have the same canonical customer, exact `reporting_period`, recorded scope, and `approval.approved: true`. Otherwise stop with `THIRD_PARTY_APPROVAL_REQUIRED` before reading credentials or making a paid request. `--without-third-party` is the only explicit waiver; it records the waiver and hides the corresponding panel.
-- Resolve every GA4/GSC archive through the active customer registry and explicit shared `--archive-root`. `monthly`, `quarterly`, and `yearly` require exactly 1, 3, and 12 continuous months; `period` requires at least 2 continuous months and is labelled “阶段报告”. Missing current data always blocks. A missing predecessor makes comparison `unavailable`, never partial; legacy `current_only_exception` records still require `--allow-current-only` to publish.
+- Resolve every GA4/GSC archive through the active customer registry and explicit shared `--archive-root`. `monthly`, `quarterly`, and `yearly` require exactly 1, 3, and 12 continuous months; `period` requires at least 2 continuous months and is labelled “阶段报告”. `custom` requires inclusive `--start-date YYYY-MM-DD --end-date YYYY-MM-DD`, stored separately from month archives. Missing current data always blocks. For `custom`, automatically attempt the immediately preceding equal-day GA4/GSC range; a missing predecessor makes comparison `unavailable`, never partial, and is reported only to the operator/internal diagnostic—not in `summary.md` or the customer 文字总结.
 - The report-period aggregate is canonical. Monthly selection may change only monthly detail panels; it must never alter management summary, report-period KPIs, channels, strategy metadata, or action plans.
 - The user's explicit continuous month range is authoritative. Generate and, after the normal explicit publication approval, publish that exact range even when its final month is still in progress. Do not silently replace it with the last closed month or add a "preview" label. Use only the data actually available in the selected monthly archives; real archive, permission, or collection failures must remain visible.
 - Hide a waived or invalid DataForSEO or SEOAgent panel. Never fill an empty panel with another month, another client, or a third-party estimate.
@@ -33,9 +33,9 @@ Work from a team workspace, never from this installed skill directory. Read `ref
 
 1. Connect the shared source root and create `<shared-source-root>/customer-registry.json` from `assets/customer-registry.example.json`.
 2. Before collecting any customer, add exactly one active `canonical_domain` ↔ `portal_slug` record to that registry. New customers must use only lowercase letters, digits, and hyphens in `portal_slug`. An existing public directory whose slug is exactly its canonical domain may be retained only with the explicit `legacy_public_slug: true` marker; do not use that marker for new customers.
-3. Import a verified v2.2 local archive with `<installed-skill-dir>/scripts/import_google_archive.py --archive-root <shared-source-root> --source-file <legacy-json> --month YYYY-MM`, or collect one natural month with `<installed-skill-dir>/scripts/google_api_collector.py --archive-root <shared-source-root> --month YYYY-MM`. Both require an exact calendar-month period and non-empty GA4/GSC sections, exclusively write `<shared-source-root>/ga4-gsc/<canonical-domain>/YYYY-MM.json`, then a non-public `YYYY-MM.json.ready` SHA-256 marker. Each consumer reads one validated in-memory JSON snapshot only; neither file is overwritten.
-4. Generate with `<installed-skill-dir>/scripts/generate_dashboard_report.py --archive-root <shared-source-root>`. Use `monthly` (1), `quarterly` (3), `yearly` (12), or `period` (2+ continuous months). A missing full predecessor simply hides comparison; an incomplete current period still stops.
-5. First look for matching approved local DataForSEO and SEOAgent snapshots. If either is missing or differs in period/scope, show the required paid-request scope and maximum cost, then wait for explicit confirmation. Do not read credentials or call a provider before that confirmation. Use `--without-third-party` only when the user explicitly declines the missing module.
+3. Import a verified v2.2 local archive with `<installed-skill-dir>/scripts/import_google_archive.py --archive-root <shared-source-root> --source-file <legacy-json> --month YYYY-MM`, or collect one natural month with `<installed-skill-dir>/scripts/google_api_collector.py --archive-root <shared-source-root> --month YYYY-MM`. A custom-date collection uses `--start YYYY-MM-DD --end YYYY-MM-DD` and writes only `<shared-source-root>/ga4-gsc/<canonical-domain>/custom/<start>_to_<end>.json` plus its non-public ready marker. Each consumer reads one validated in-memory JSON snapshot only; neither file is overwritten.
+4. Generate with `<installed-skill-dir>/scripts/generate_dashboard_report.py --archive-root <shared-source-root>`. Use `monthly` (1), `quarterly` (3), `yearly` (12), `period` (2+ continuous months), or `custom --start-date YYYY-MM-DD --end-date YYYY-MM-DD`. A missing full predecessor simply hides comparison; an incomplete current period still stops.
+5. First look for matching approved local DataForSEO and SEOAgent snapshots. If either is missing or differs in period/scope, show the required paid-request scope and maximum cost, then wait for explicit confirmation. For a custom range that a provider cannot represent exactly, let the user explicitly choose `--third-party-proxy-month YYYY-MM` as labeled monthly context or `--without-third-party`; never choose a month or make a paid call automatically.
 6. For a newly approved DataForSEO request, determine GSC-selected terms, run `<installed-skill-dir>/scripts/dataforseo_keyword_enrichment.py --archive-root <shared-source-root> --dry-run`, then run `--execute` once after confirmation. Set `reporting_period` to the exact month list. Normalize approved SEOAgent results using `assets/seoagent-archive.example.json`, including the same `reporting_period` and `approval` fields.
 7. Generate with explicit archive inputs. Keep the diagnostics path outside `output/dashboards/`:
 
@@ -55,7 +55,7 @@ python <installed-skill-dir>/scripts/validate_report_artifact.py --report-dir <o
 10. Publish only with `<installed-skill-dir>/scripts/publish_oss_report.py --source-archive-root <shared-source-root>`. It validates the non-public `source-archive-usage.json`, but publishes only `index.html`, `dashboard-data.json`, and `summary.md`. A legacy current-only exception also requires `--allow-current-only` here. Configure the SMB report archive root for the local OS (macOS mount, Windows mapped drive, or Windows UNC path); never assume another teammate's mount path. The only supported public path is:
 
 ```text
-https://reports.jzyseo.com/reports/<client-slug>/<monthly|quarterly|yearly|period>/<period>/
+https://reports.jzyseo.com/reports/<client-slug>/<monthly|quarterly|yearly|period|custom>/<period>/
 ```
 
 11. In the final customer delivery, label the exact copied `## 运营总结` section from the reviewed `summary.md` as “文字总结”. Do not generate another prose summary, including when asked to change its wording or emphasis.
@@ -68,7 +68,7 @@ On Windows, also read `references/windows-first-run.md` before configuring paths
 Before replacing the global v2.5 installation from GitHub `main`, require a clean Git source checkout and a staged Git archive parity check for the complete v2.5 contract:
 
 ```text
-python <installed-skill-dir>/scripts/check_package_parity.py --source <seo-report-portal-v2-5-source> --staged-zip <candidate.zip> --installed <global-seo-report-portal-v2-5>
+python <installed-skill-dir>/scripts/check_package_parity.py --source <seo-report-portal-v2-6-source> --staged-zip <candidate.zip> --installed <global-seo-report-portal-v2-6>
 ```
 
 ## Resources

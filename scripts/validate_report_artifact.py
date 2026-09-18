@@ -11,7 +11,7 @@ import re
 from typing import Any, Dict, List
 
 from report_diagnostics import diagnostic
-from report_periods import validate_report_months
+from report_periods import validate_custom_date_range, validate_report_months
 
 
 def _fail(message: str) -> None:
@@ -39,7 +39,14 @@ def validate_report_artifact(directory: Path) -> Dict[str, Any]:
     ):
         _fail(f"REPORT_TYPE_PATH_MISMATCH: 路径 {domain}/{report_type}/{label} 与 report 元数据不一致")
     try:
-        validate_report_months(report_type, report.get("selectedMonths", []))
+        if report_type == "custom":
+            custom_range = report.get("customRange", {})
+            start, end = str(custom_range.get("startDate", "")), str(custom_range.get("endDate", ""))
+            first, last = validate_custom_date_range(start, end)
+            if label != f"{first.isoformat()}_to_{last.isoformat()}" or custom_range.get("dayCount") != (last - first).days + 1:
+                _fail("REPORT_TYPE_PATH_MISMATCH: 自定义报告日期范围与路径不一致")
+        else:
+            validate_report_months(report_type, report.get("selectedMonths", []))
     except ValueError as exc:
         _fail(str(exc))
     html = html_path.read_text(encoding="utf-8")

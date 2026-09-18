@@ -23,13 +23,13 @@ from source_archive_usage import write_usage  # noqa: E402
 
 
 class PackageSmokeTests(unittest.TestCase):
-    def test_v25_identity_is_consistent(self) -> None:
+    def test_v26_identity_is_consistent(self) -> None:
         skill = (PACKAGE / "SKILL.md").read_text(encoding="utf-8")
         agent = (PACKAGE / "agents" / "openai.yaml").read_text(encoding="utf-8")
-        self.assertIn("name: seo-report-portal-v2-5", skill)
-        self.assertIn("# SEO Report Portal v2.5", skill)
-        self.assertIn('display_name: "SEO Report Portal v2.5"', agent)
-        self.assertIn("$seo-report-portal-v2-5", agent)
+        self.assertIn("name: seo-report-portal-v2-6", skill)
+        self.assertIn("# SEO Report Portal v2.6", skill)
+        self.assertIn('display_name: "SEO Report Portal v2.6"', agent)
+        self.assertIn("$seo-report-portal-v2-6", agent)
         self.assertNotIn("seo-report-portal-v2-2", skill)
 
     def test_generic_dataforseo_example_is_a_valid_limited_trial_config(self) -> None:

@@ -17,12 +17,11 @@ from typing import Dict, Iterable
 from urllib.request import urlopen
 
 from customer_registry import require_active_customer
-from report_periods import REPORT_TYPES
+from report_periods import REPORT_TYPES, validate_report_label
 from source_archive_usage import verify_usage
 
 
 FILES = ("index.html", "dashboard-data.json", "summary.md")
-PERIOD_RE = re.compile(r"^(?:\d{4}|\d{4}-\d{2}|\d{4}-\d{2}_to_\d{4}-\d{2})$")
 
 def load_env_file(path: Path) -> Dict[str, str]:
     """Load simple KEY=VALUE settings without interpreting shell escapes."""
@@ -85,8 +84,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    if not PERIOD_RE.fullmatch(args.period):
-        raise ValueError("周期格式必须是 YYYY、YYYY-MM 或 YYYY-MM_to_YYYY-MM。")
+    validate_report_label(args.type, args.period)
 
     report_dir = args.local_report_dir.resolve()
     report_files = tuple(required_report_files(report_dir))

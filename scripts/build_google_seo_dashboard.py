@@ -277,6 +277,7 @@ def _market_keywords(enrichment: Dict[str, Any]) -> List[Dict[str, Any]]:
 def _enrich_month(
     month: Dict[str, Any], archive: Dict[str, Any], label: str,
     enrichment_archive_dir: Optional[Path], diagnostics: List[Dict[str, Any]], expected_report_months: Optional[List[str]],
+    custom_proxy_months: Optional[List[str]],
 ) -> None:
     month["marketKeywords"] = []
     month["serpDetail"] = None
@@ -289,9 +290,11 @@ def _enrich_month(
     allowed_queries = {str(row.get("query", "")).strip() for row in month.get("keywords", []) if row.get("query")}
     selected_queries = {str(row.get("query", "")).strip() for row in enrichment.get("selected_keywords", []) if isinstance(row, dict) and row.get("query")}
     market = enrichment.get("market")
+    custom_scope = bool(expected_report_months and "-" in expected_report_months[0] and len(expected_report_months[0]) == 10)
+    coverage_mode = enrichment.get("coverage_mode", "exact_date" if custom_scope else "month")
     valid = (
         enrichment.get("domain") == archive.get("domain")
-        and enrichment.get("month") == label
+        and (enrichment.get("month") == label or (custom_scope and coverage_mode in {"exact_date", "month_proxy"}))
         and isinstance(market, dict)
         and bool(market.get("location_code"))
         and bool(market.get("language_code"))
@@ -300,6 +303,9 @@ def _enrich_month(
         and (expected_report_months is None or (
             enrichment.get("reporting_period") == expected_report_months
             and enrichment.get("approval", {}).get("approved") is True
+            and (not custom_scope or coverage_mode == "exact_date" or (
+                coverage_mode == "month_proxy" and custom_proxy_months and enrichment.get("proxy_months") == custom_proxy_months
+            ))
         ))
     )
     if not valid:
@@ -396,7 +402,7 @@ def _normalise_strategy_opportunities(raw: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _load_seoagent_strategy_archive(
-    archive_dir: Optional[Path], domain: str, report_months: List[str], diagnostics: List[Dict[str, Any]],
+    archive_dir: Optional[Path], domain: str, report_months: List[str], diagnostics: List[Dict[str, Any]], custom_proxy_months: Optional[List[str]],
 ) -> Optional[Dict[str, Any]]:
     if archive_dir is None or not archive_dir.exists():
         return None
@@ -409,10 +415,14 @@ def _load_seoagent_strategy_archive(
         if raw.get("provider") != "seoagent" or raw.get("domain") != domain or raw.get("status") != "complete":
             continue
         strategy = _normalise_strategy_opportunities(raw)
+        custom_scope = bool(report_months and len(report_months[0]) == 10)
+        coverage_mode = raw.get("coverage_mode", "exact_date" if custom_scope else "month")
         if (
-            strategy["archiveMonth"] not in report_months or not strategy["location"] or not strategy["language"]
+            (not custom_scope and strategy["archiveMonth"] not in report_months) or not strategy["location"] or not strategy["language"]
             or raw.get("reporting_period") != report_months
             or raw.get("approval", {}).get("approved") is not True
+            or (coverage_mode == "month_proxy" and (not custom_proxy_months or raw.get("proxy_months") != custom_proxy_months))
+            or coverage_mode not in ({"exact_date", "month_proxy"} if custom_scope else {"month"})
         ):
             scope_mismatch = {"archive": path.name, "collection_month": strategy["archiveMonth"], "location": strategy["location"], "language": strategy["language"]}
             continue
@@ -434,6 +444,7 @@ def build_dashboard_data(
     enrichment_archive_dir: Optional[Path] = None,
     seoagent_archive_dir: Optional[Path] = None,
     expected_report_months: Optional[List[str]] = None,
+    custom_proxy_months: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     all_months = []
     source_domain = ""
@@ -448,7 +459,7 @@ def build_dashboard_data(
             raise ValueError(f"归档域名不一致：{path.name} 属于 {archived_domain}，不是 {source_domain}")
         source_domain = source_domain or archived_domain
         month = _month_summary(archive, path.stem)
-        _enrich_month(month, archive, path.stem, enrichment_archive_dir, diagnostics, expected_report_months)
+        _enrich_month(month, archive, path.stem, enrichment_archive_dir, diagnostics, expected_report_months, custom_proxy_months)
         all_months.append(month)
     _with_keyword_changes(all_months)
     for month in all_months:
@@ -473,7 +484,7 @@ def build_dashboard_data(
         "reportGa4": _report_ga4(selected_months, current_summary["metrics"], diagnostics),
         "diagnostics": diagnostics,
     }
-    strategy = _load_seoagent_strategy_archive(seoagent_archive_dir, source_domain, [month["label"] for month in selected_months], diagnostics)
+    strategy = _load_seoagent_strategy_archive(seoagent_archive_dir, source_domain, expected_report_months or [month["label"] for month in selected_months], diagnostics, custom_proxy_months)
     if strategy:
         payload["strategyOpportunities"] = strategy
     return payload
